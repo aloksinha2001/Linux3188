@@ -1,0 +1,17 @@
+#
+# TV Encoder CH7025/7026 drivers configuration
+#
+
+config CH7025_7026_TVOUT
+	bool "CH7025/7026 TV Encoder Support"
+	depends on RK_TVENCODER
+	help
+		Support Chrontel CH7025/7026 TV Encoder.
+
+config CH7025_7026_TVOUT_YPBPR
+	bool "Support YPBPR Output"
+	depends on CH7025_7026_TVOUT
+			
+config CH7025_7026_TVOUT_CVBS
+	bool "Support CVBS Output"
+	depends on CH7025_7026_TVOUT

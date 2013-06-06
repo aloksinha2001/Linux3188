@@ -1,0 +1,30 @@
+choice
+	prompt "Rockchip SoC Type"
+	depends on ARCH_RK3188
+
+config SOC_RK3188
+	bool "RK3188"
+
+endchoice
+
+choice
+	prompt "RK3188 Board Type"
+	depends on SOC_RK3188
+
+config MACH_RK3188_TB
+	bool "RK3188 Top Board"
+
+config MACH_RK3188_FPGA
+	bool "RK3188 FPGA board"
+	select RK_FPGA
+
+config MACH_RK3188_LR097
+        bool "RK3188 LR097 JC21CA board"
+
+config MACH_RK3188_DS1006H
+	bool "RK3188 ds1006h board"
+
+config MACH_RK3188_BOX
+	bool "RK3188 box board"
+	
+endchoice

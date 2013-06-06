@@ -1,0 +1,5 @@
+config  SII902XA
+        bool "Silicon Image HDMI transmitter SiI9022A/9024A support"
+        depends on RK_HDMI
+        help
+           Support Silicon Image HDMI transmitter SiI9022A/9024A if you say y here.

@@ -1,0 +1,13 @@
+#
+# ADC subsystem configuration
+#
+
+menuconfig ADC
+	bool "ADC support"
+        depends on PLAT_RK
+	default y
+if ADC
+
+source drivers/adc/plat/Kconfig
+
+endif # ADC

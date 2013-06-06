@@ -1,0 +1,5 @@
+config  IT66121
+        bool "ITE HDMI transmitter IT66121 support"
+        depends on RK_HDMI
+        help
+           Support ITE HDMI transmitter IT66121 if you say y here.

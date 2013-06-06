@@ -1,0 +1,17 @@
+#
+# TV Encoder RK610 drivers configuration
+#
+
+config RK610_TVOUT
+	bool "RK610(Jetta) TV Encoder support"
+	depends on RK_TVENCODER
+	select MFD_RK610
+	help
+		Support Jetta(RK610) to output YPbPr and CVBS.
+		
+config RK610_TVOUT_YPbPr
+	bool "Support YPbPr Output"
+	depends on RK610_TVOUT
+config RK610_TVOUT_CVBS
+	bool "Support CVBS Output"
+	depends on RK610_TVOUT

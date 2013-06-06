@@ -1,0 +1,24 @@
+menuconfig RK_HDMI
+       bool "Rockchip HDMI support"
+       select FB_MODE_HELPERS
+       
+source "drivers/video/rockchip/hdmi/rk30/Kconfig"
+source "drivers/video/rockchip/hdmi/rk2928/Kconfig"
+source "drivers/video/rockchip/hdmi/sii902xa/Kconfig"
+source "drivers/video/rockchip/hdmi/it66121/Kconfig"
+source "drivers/video/rockchip/hdmi/softcec/Kconfig"
+
+config RK_HDMI_DEBUG
+		bool "Rockchip HDMI Debugging"
+        depends on RK_HDMI
+        default n
+		help
+		  Enableds verbose debugging the the HDMI drivers
+
+config RK_HDMI_CTL_CODEC
+		bool "Mute Codec When HDMI Actived"
+		depends on RK_HDMI
+		default n
+		help
+			If you say y heres, Codec will be mute when hdmi inserted,
+			and unmute when removed. 

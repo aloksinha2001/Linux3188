@@ -1,0 +1,7 @@
+menu "EEPROM AT24C16 FOR RK29"
+config EEPROM_AT24C16
+	tristate "ATMEL EEPROM AT24C16 CONTROL"
+	default n
+	help
+      atmel eeprom at24c16 comntrol, with 2 wire control.
+endmenu

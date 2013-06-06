@@ -1,0 +1,7 @@
+config  HDMI_RK30
+        bool "RK30 HDMI support"
+        depends on LCDC_RK30 && RK_HDMI
+        help
+           Support rk30 hdmi if you say y here
+           
+source "drivers/video/rockchip/hdmi/rk30/hdcp/Kconfig"

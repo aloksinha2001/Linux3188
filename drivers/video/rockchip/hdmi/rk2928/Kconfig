@@ -1,0 +1,13 @@
+config  HDMI_RK2928
+        bool "RK2928 HDMI support"
+        depends on LCDC_RK2928 && RK_HDMI
+        help
+           Support rk2928 hdmi if you say y here
+
+config HDCP_RK2928
+	bool "RK2928 HDCP support"
+        depends on HDMI_RK2928
+        default n
+	help
+	  HDCP Interface. This adds the High Definition Content Protection Interface.
+	  See http://www.digital-cp.com/ for HDCP specification.
