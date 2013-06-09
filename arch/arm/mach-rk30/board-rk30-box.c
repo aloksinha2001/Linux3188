@@ -1809,11 +1809,83 @@ static struct i2c_board_info __initdata i2c0_info[] = {
 int __sramdata g_pmic_type =  0;
 #ifdef CONFIG_I2C1_RK30
 #ifdef CONFIG_MFD_WM831X_I2C
-#include "board-rk30-sdk-wm8326.c"
+//Galland  #include "board-rk30-sdk-wm8326.c"
+#define PMU_POWER_SLEEP RK30_PIN6_PB1	//Galland from board-rk30-sdk-wm8326.c
+#include "board-pmu-wm8326.c" //Galland
 #endif
 #ifdef CONFIG_MFD_TPS65910
+//Galland #define TPS65910_HOST_IRQ        RK30_PIN6_PA4
+//Galland #include "board-rk30-sdk-tps65910.c"
+//Galland struct from board-rk3168-ds1006h.c but with values from board-rk30-sdk-tps65910.c
+#ifdef CONFIG_ARCH_RK3066B
+#define TPS65910_HOST_IRQ        RK30_PIN0_PB3
+#else
 #define TPS65910_HOST_IRQ        RK30_PIN6_PA4
-#include "board-rk30-sdk-tps65910.c"
+#endif
+
+#define PMU_POWER_SLEEP RK30_PIN6_PB1 //Galland from board-rk30-sdk-tps65910.c
+
+static struct pmu_info  tps65910_dcdc_info[] = {
+	{
+		.name          = "vdd_cpu",   //logic
+		.min_uv          = 1200000,
+		.max_uv         = 1200000,
+	},
+	{
+		.name          = "vdd2",    //ddr
+		.min_uv          = 1200000,
+		.max_uv         = 1200000,
+	},
+	{
+		.name          = "vio",   //vcc_io
+		.min_uv          = 3000000,
+		.max_uv         = 3000000,
+	},
+	{
+		.name          = "vaux1",   //vcc25_hdmi
+		.min_uv          = 2500000,
+		.max_uv         = 2500000,
+	},
+};
+static  struct pmu_info  tps65910_ldo_info[] = {
+	{
+		.name          = "vpll",   //vcc25
+		.min_uv          = 2500000,
+		.max_uv         = 2500000,
+	},
+	{
+		.name          = "vdig1",    //vcc18_cif
+		.min_uv          = 1800000,
+		.max_uv         = 1800000,
+	},
+	{
+		.name          = "vdig2",   //vdd11
+		.min_uv          = 1100000,
+		.max_uv         = 1100000,
+	},
+	{
+		.name          = "vmmc",   //vcc28_cif
+		.min_uv          = 2800000,
+		.max_uv         = 2800000,
+	},
+	{
+		.name          = "vaux2",   //vcca33
+		.min_uv          = 3300000,
+		.max_uv         = 3300000,
+	},
+	{
+		.name          = "vaux33",   //vcc_tp
+		.min_uv          = 3300000,
+		.max_uv         = 3300000,
+	},
+	{
+		.name          = "vdac",   //vccio_wl
+		.min_uv          = 1800000,
+		.max_uv         = 1800000,
+	},
+ };
+
+#include "board-pmu-tps65910.c"
 #endif
 
 static struct i2c_board_info __initdata i2c1_info[] = {
