@@ -21,8 +21,8 @@
 #define V_VD			1080
 #define V_FP			4
 
-#define LCD_WIDTH       0//1920
-#define LCD_HEIGHT      0//1080
+#define LCD_WIDTH       1920
+#define LCD_HEIGHT      1080
 /* Other */
 #define DCLK_POL		1
 #define SWAP_RB			0
