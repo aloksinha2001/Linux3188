@@ -22,13 +22,20 @@
 #include <linux/delay.h>
 #include <linux/hardirq.h>
 #include <plat/efuse.h>
-#include <mach/cru.h>
+//Galland #include <mach/cru.h>
 #include <mach/iomux.h>
 #include <mach/clock.h>
 #include <mach/pmu.h>
 #include <mach/dvfs.h>
 #include <mach/ddr.h>
 #include <mach/cpu.h>
+
+
+// <------- GALLAND //
+
+#include <mach/cru-rk3188.h>  //apparently valid for rk30 too
+
+// GALLAND -------> //
 
 #define MHZ			(1000UL * 1000UL)
 #define KHZ			(1000UL)
@@ -3619,6 +3626,8 @@ void __init _rk30_clock_data_init(unsigned long gpll, unsigned long cpll, int fl
 	//cru_writel(0x07000000,CRU_MISC_CON);
 
 }
+
+/* GALLAND
 extern int rk3188_dvfs_init(void);
 
 void __init rk30_clock_data_init(unsigned long gpll, unsigned long cpll, u32 flags)
@@ -3628,6 +3637,20 @@ void __init rk30_clock_data_init(unsigned long gpll, unsigned long cpll, u32 fla
 	_rk30_clock_data_init(gpll, cpll, flags);
 	rk3188_dvfs_init();
 }
+GALLAND */
+
+// GALLAND
+extern int rk_dvfs_init(void);
+
+void __init rk30_clock_data_init(unsigned long gpll, unsigned long cpll, u32 flags)
+{
+	CLKDATA_DBG("clock: gpll %lu cpll %lu flags 0x%x con2 0x%x/0x%x\n", 
+			gpll, cpll, flags, cru_readl(PLL_CONS(DPLL_ID, 2)), cru_readl(PLL_CONS(CPLL_ID, 2)));
+	_rk30_clock_data_init(gpll, cpll, flags);
+	rk_dvfs_init();
+}
+// GALLAND
+
 
 /*
  * You can override arm_clk rate with armclk= cmdline option.
