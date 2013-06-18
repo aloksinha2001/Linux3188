@@ -270,8 +270,10 @@ static int rk30_load_screen(struct rk_lcdc_device_driver *dev_drv, bool initscre
 	ft = (u64)(screen->upper_margin + screen->lower_margin + screen->y_res +screen->vsync_len)*
 		(screen->left_margin + screen->right_margin + screen->x_res + screen->hsync_len)*
 		(dev_drv->pixclock);       // one frame time ,(pico seconds)
+if (ft > 0) { //Galland avoid div by 0 when backporting
 	fps = div64_u64(1000000000000llu,ft);
 	screen->ft = 1000/fps;
+} else  {fps=-1; }
     	printk("%s: dclk:%lu>>fps:%d ",lcdc_dev->driver.name,clk_get_rate(lcdc_dev->dclk),fps);
 
     	if(screen->init)
@@ -325,11 +327,11 @@ static int win0_open(struct rk30_lcdc_device *lcdc_dev,bool open)
 	spin_unlock(&lcdc_dev->reg_lock);
 	
 	
+	printk(KERN_INFO "lcdc%d win0 %s\n",lcdc_dev->id,open?"open":"closed");
 	return 0;
 }
 static int win1_open(struct rk30_lcdc_device *lcdc_dev,bool open)
 {
-	unsigned char i = 0;
 	spin_lock(&lcdc_dev->reg_lock);
 	if(likely(lcdc_dev->clk_on))
 	{
@@ -358,6 +360,7 @@ static int win1_open(struct rk30_lcdc_device *lcdc_dev,bool open)
 	}
 	spin_unlock(&lcdc_dev->reg_lock);
 	
+	printk(KERN_INFO "lcdc%d win1 %s\n",lcdc_dev->id,open?"open":"closed");
 	return 0;
 }
 
@@ -379,7 +382,7 @@ static int win2_open(struct rk30_lcdc_device *lcdc_dev,bool open)
 		{
 			lcdc_dev->atv_layer_cnt--;
 		}
-		lcdc_dev->driver.layer_par[1]->state = open;
+		lcdc_dev->driver.layer_par[2]->state = open;
 		
 		lcdc_msk_reg(lcdc_dev, SYS_CTRL1, m_W2_EN, v_W2_EN(open));
 
@@ -389,11 +392,11 @@ static int win2_open(struct rk30_lcdc_device *lcdc_dev,bool open)
 			lcdc_msk_reg(lcdc_dev, SYS_CTRL0,m_LCDC_STANDBY,v_LCDC_STANDBY(1));
 		}
 		
-		lcdc_writel(lcdc_dev, REG_CFG_DONE, 0x01);
-		lcdc_dev->driver.layer_par[1]->state = open;
+		lcdc_cfg_done(lcdc_dev);
 	}
 	spin_unlock(&lcdc_dev->reg_lock);
 	
+	printk(KERN_INFO "lcdc%d win2 %s\n",lcdc_dev->id,open?"open":"closed");
 	return 0;
 }
 
@@ -862,6 +865,7 @@ static int win2_set_par(struct rk30_lcdc_device *lcdc_dev,rk_screen *screen,
 	    	}
 		
 		lcdc_msk_reg(lcdc_dev,SYS_CTRL1, m_W2_FORMAT, v_W2_FORMAT(fmt_cfg));
+      lcdc_cfg_done(lcdc_dev); 
 	}
 	spin_unlock(&lcdc_dev->reg_lock);
     return 0;
@@ -874,7 +878,7 @@ static int rk30_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,boo
 	int v;
 	struct rk30_lcdc_device *lcdc_dev = container_of(dev_drv,struct rk30_lcdc_device,driver);
 	
-	//printk("%s>>open:%d>>cnt:%d\n",__func__,open,lcdc_dev->atv_layer_cnt);
+	printk("%s>>open:%d>>cnt:%d\n",__func__,open,lcdc_dev->atv_layer_cnt);
 	if((open) && (!lcdc_dev->atv_layer_cnt)) //enable clk,when first layer open
 	{
 		rk30_lcdc_clk_enable(lcdc_dev);
@@ -894,6 +898,7 @@ static int rk30_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,boo
 				
 			}
 			lcdc_msk_reg(lcdc_dev,SYS_CTRL1,m_DSP_LUT_RAM_EN,v_DSP_LUT_RAM_EN(1));
+         lcdc_cfg_done(lcdc_dev); 
 		}
 		spin_unlock(&lcdc_dev->reg_lock);
 	}
@@ -1512,6 +1517,7 @@ int rk30_lcdc_early_resume(struct rk_lcdc_device_driver *dev_drv)
 			
 		}
 		lcdc_msk_reg(lcdc_dev,SYS_CTRL1,m_DSP_LUT_RAM_EN,v_DSP_LUT_RAM_EN(1));
+      lcdc_cfg_done(lcdc_dev);
 	}
 	if(lcdc_dev->atv_layer_cnt)
 	{
