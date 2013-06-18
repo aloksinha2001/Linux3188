@@ -32,13 +32,15 @@
 #include <asm/uaccess.h>
 #include "rk30_lcdc.h"
 
+#define GALLAND_CHANGED 1
+//#define GALLAND_ENABLE_OLD_CLOCKING 1
 
-
-static int dbg_thresd = 0;
+static int dbg_thresd = 2;
 module_param(dbg_thresd, int, S_IRUGO|S_IWUSR);
 #define DBG(level,x...) do { if(unlikely(dbg_thresd >= level)) printk(KERN_INFO x); } while (0)
 
 
+#ifndef GALLAND_ENABLE_OLD_CLOCKING
 static int  rk30_lcdc_clk_enable(struct rk30_lcdc_device *lcdc_dev)
 {
 	
@@ -67,6 +69,8 @@ static int rk30_lcdc_clk_disable(struct rk30_lcdc_device *lcdc_dev)
 	printk("rk30 lcdc%d clk disable...\n",lcdc_dev->id);
 	return 0;
 }
+#endif
+
 static int rk30_lcdc_init(struct rk_lcdc_device_driver *dev_drv)
 {
 	int i = 0;
@@ -97,7 +101,14 @@ static int rk30_lcdc_init(struct rk_lcdc_device_driver *dev_drv)
        		printk(KERN_ERR "failed to get lcdc%d clk source\n",lcdc_dev->id);
    	}
 	
+#ifdef GALLAND_ENABLE_OLD_CLOCKING
+	clk_enable(lcdc_dev->pd);
+	clk_enable(lcdc_dev->hclk);  //enable aclk and hclk for register config
+	clk_enable(lcdc_dev->aclk);  
+	lcdc_dev->clk_on = 1;
+#else
 	rk30_lcdc_clk_enable(lcdc_dev);
+#endif
 	
 	lcdc_msk_reg(lcdc_dev,SYS_CTRL0,m_HWC_CHANNEL_ID | m_WIN2_CHANNEL_ID | m_WIN1_CBR_CHANNEL_ID |
 		m_WIN1_YRGB_CHANNEL_ID | m_WIN0_CBR_CHANNEL1_ID | m_WIN0_YRGB_CHANNEL1_ID | 
@@ -127,7 +138,9 @@ static int rk30_lcdc_init(struct rk_lcdc_device_driver *dev_drv)
 	
 	lcdc_cfg_done(lcdc_dev);  // write any value to  REG_CFG_DONE let config become effective
 
+#ifndef GALLAND_ENABLE_OLD_CLOCKING
 	rk30_lcdc_clk_disable(lcdc_dev);
+#endif
 	
 	return 0;
 }
@@ -267,6 +280,10 @@ static int rk30_load_screen(struct rk_lcdc_device_driver *dev_drv, bool initscre
 	}
     	lcdc_dev->driver.pixclock = lcdc_dev->pixclock = div_u64(1000000000000llu, clk_get_rate(lcdc_dev->dclk));
 	
+#ifdef GALLAND_ENABLE_OLD_CLOCKING
+   clk_enable(lcdc_dev->dclk);
+#endif
+
 	ft = (u64)(screen->upper_margin + screen->lower_margin + screen->y_res +screen->vsync_len)*
 		(screen->left_margin + screen->right_margin + screen->x_res + screen->hsync_len)*
 		(dev_drv->pixclock);       // one frame time ,(pico seconds)
@@ -400,6 +417,7 @@ static int win2_open(struct rk30_lcdc_device *lcdc_dev,bool open)
 	return 0;
 }
 
+#ifndef GALLAND_CHANGED
 //$_rbox_$_modify_$_zhengyang added for hardware cursor
 static int cursor_open(struct rk30_lcdc_device *lcdc_dev, bool open)
 {
@@ -502,6 +520,7 @@ static int rk30_cursor_set_pos(struct rk_lcdc_device_driver *dev_drv, int x, int
 	lcdc_cfg_done(lcdc_dev);
 }
 //$_rbox_$_modify_$end
+#endif
 
 static int rk30_lcdc_blank(struct rk_lcdc_device_driver*lcdc_drv,int layer_id,int blank_mode)
 {
@@ -881,7 +900,10 @@ static int rk30_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,boo
 	printk("%s>>open:%d>>cnt:%d\n",__func__,open,lcdc_dev->atv_layer_cnt);
 	if((open) && (!lcdc_dev->atv_layer_cnt)) //enable clk,when first layer open
 	{
+#ifndef GALLAND_ENABLE_OLD_CLOCKING
 		rk30_lcdc_clk_enable(lcdc_dev);
+#endif
+#ifndef GALLAND_CHANGED
 		memcpy((u8*)lcdc_dev->regs, (u8*)lcdc_dev->regsbak, 0xc4);  //resume reg
 		rk30_load_screen(dev_drv,1);
 		spin_lock(&lcdc_dev->reg_lock);
@@ -901,6 +923,7 @@ static int rk30_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,boo
          lcdc_cfg_done(lcdc_dev); 
 		}
 		spin_unlock(&lcdc_dev->reg_lock);
+#endif
 	}
 	
 	if(layer_id == 0)
@@ -916,6 +939,7 @@ static int rk30_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,boo
 		win2_open(lcdc_dev,open);
 	}
 
+#ifndef GALLAND_ENABLE_OLD_CLOCKING
 	if((!open) && (!lcdc_dev->atv_layer_cnt))  //when all layer closed,disable clk
 	{
 		#ifdef CONFIG_HDMI_RK30
@@ -923,6 +947,7 @@ static int rk30_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,boo
 		#endif
 		rk30_lcdc_clk_disable(lcdc_dev);
 	}
+#endif
 
 	printk(KERN_INFO "lcdc%d win%d %s,atv layer:%d\n",
 		lcdc_dev->id,layer_id,open?"open":"closed",
@@ -1028,6 +1053,7 @@ int rk30_lcdc_ioctl(struct rk_lcdc_device_driver * dev_drv,unsigned int cmd, uns
             		if(copy_to_user(argp, panel_size, 8)) 
 				return -EFAULT;
 			break;
+#ifndef GALLAND_CHANGED
 		case FBIOPUT_SET_CURSOR_EN:
 			{
 				int en;
@@ -1060,6 +1086,7 @@ int rk30_lcdc_ioctl(struct rk_lcdc_device_driver * dev_drv,unsigned int cmd, uns
 				rk30_cursor_set_cmap(dev_drv, img.bg_color, img.fg_color);
 			}
 			break;
+#endif
 		default:
 			break;
 	}
@@ -1461,14 +1488,19 @@ int rk30_lcdc_early_suspend(struct rk_lcdc_device_driver *dev_drv)
 	struct rk30_lcdc_device *lcdc_dev = container_of(dev_drv,struct rk30_lcdc_device,driver);
 
 
+#ifndef GALLAND_CHANGED
 	if(dev_drv->screen0->standby)
 		dev_drv->screen0->standby(1);
 	if(dev_drv->screen_ctr_info->io_disable)
 		dev_drv->screen_ctr_info->io_disable();
+#endif
 	
 	spin_lock(&lcdc_dev->reg_lock);
 	if(likely(lcdc_dev->clk_on))
 	{
+#ifdef GALLAND_ENABLE_OLD_CLOCKING
+      lcdc_dev->clk_on = 0; //Galland
+#endif
 		lcdc_msk_reg(lcdc_dev, INT_STATUS, m_FRM_START_INT_CLEAR, v_FRM_START_INT_CLEAR(1));
 		lcdc_msk_reg(lcdc_dev, SYS_CTRL0,m_LCDC_STANDBY,v_LCDC_STANDBY(1));
 		lcdc_cfg_done(lcdc_dev);
@@ -1481,7 +1513,15 @@ int rk30_lcdc_early_suspend(struct rk_lcdc_device_driver *dev_drv)
 	}
 	
 		
+#ifdef GALLAND_ENABLE_OLD_CLOCKING
+	mdelay(1);
+	clk_disable(lcdc_dev->dclk);
+	clk_disable(lcdc_dev->hclk);
+	clk_disable(lcdc_dev->aclk);
+	clk_disable(lcdc_dev->pd);
+#else
 	rk30_lcdc_clk_disable(lcdc_dev);
+#endif
 
 	return 0;
 }
@@ -1494,12 +1534,21 @@ int rk30_lcdc_early_resume(struct rk_lcdc_device_driver *dev_drv)
 	int __iomem *c;
 	int v;
 
+#ifndef GALLAND_CHANGED
 	if(dev_drv->screen_ctr_info->io_enable) 		//power on
 		dev_drv->screen_ctr_info->io_enable();
-		
+#endif
+
 	if(!lcdc_dev->clk_on)
 	{
+#ifdef GALLAND_ENABLE_OLD_CLOCKING
+		clk_enable(lcdc_dev->pd);
+		clk_enable(lcdc_dev->hclk);
+		clk_enable(lcdc_dev->dclk);
+		clk_enable(lcdc_dev->aclk);
+#else
 		rk30_lcdc_clk_enable(lcdc_dev);
+#endif
 	}
 	memcpy((u8*)lcdc_dev->regs, (u8*)lcdc_dev->regsbak, 0xc4);  //resume reg
 
@@ -1524,19 +1573,26 @@ int rk30_lcdc_early_resume(struct rk_lcdc_device_driver *dev_drv)
 		lcdc_msk_reg(lcdc_dev, SYS_CTRL0,m_LCDC_STANDBY,v_LCDC_STANDBY(0));
 		lcdc_cfg_done(lcdc_dev);
 	}
+#ifdef GALLAND_ENABLE_OLD_CLOCKING
+	lcdc_dev->clk_on = 1; //Galland
+#endif
 	spin_unlock(&lcdc_dev->reg_lock);
 
 	//$_rbox_$_modify_$ zhengyang modified for box display system
 	//$_rbox_$_modify_$ for rk30, hdmi clk depend on pd_lcdc0, so
 	//$_rbox_$_modify_$ lcdc0 can not be close when there is no 
 	//$_rbox_$_modify_$ actived layer.
+#ifndef GALLAND_ENABLE_OLD_CLOCKING
 	#ifdef CONFIG_HDMI_RK30
 	if(!lcdc_dev->atv_layer_cnt && lcdc_dev->id != 0)
 	#endif
 		rk30_lcdc_clk_disable(lcdc_dev);
+#endif
 	
+#ifndef GALLAND_CHANGED
 	if(dev_drv->screen0->standby)
 		dev_drv->screen0->standby(0);	      //screen wake up
+#endif		
 		
 	//$_rbox_$_modify_$ zhengyang modified end
     	return 0;
@@ -1546,7 +1602,9 @@ int rk30_lcdc_early_resume(struct rk_lcdc_device_driver *dev_drv)
 static irqreturn_t rk30_lcdc_isr(int irq, void *dev_id)
 {
 	struct rk30_lcdc_device *lcdc_dev = (struct rk30_lcdc_device *)dev_id;
+#ifndef GALLAND_CHANGED
 	ktime_t timestamp = ktime_get();
+#endif
 	
 	lcdc_msk_reg(lcdc_dev, INT_STATUS, m_FRM_START_INT_CLEAR, v_FRM_START_INT_CLEAR(1));
 	lcdc_cfg_done(lcdc_dev);
@@ -1559,9 +1617,10 @@ static irqreturn_t rk30_lcdc_isr(int irq, void *dev_id)
 		spin_unlock(&(lcdc_dev->driver.cpl_lock));
 	}
 
+#ifndef GALLAND_CHANGED
 	lcdc_dev->driver.vsync_info.timestamp = timestamp;
 	wake_up_interruptible_all(&lcdc_dev->driver.vsync_info.wait);
-	
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -1701,6 +1760,7 @@ static int __devinit rk30_lcdc_probe (struct platform_device *pdev)
 	       goto err3;
 	}
 	
+#ifndef GALLAND_CHANGED
 	if(screen_ctr_info->set_screen_info)
 	{
 		screen_ctr_info->set_screen_info(screen,screen_ctr_info->lcd_info);
@@ -1718,6 +1778,7 @@ static int __devinit rk30_lcdc_probe (struct platform_device *pdev)
 		ret =  -ENODEV;
 		goto err4;
 	}
+#endif
 	
 	ret = rk_fb_register(&(lcdc_dev->driver),&lcdc_driver,lcdc_dev->id);
 	if(ret < 0)

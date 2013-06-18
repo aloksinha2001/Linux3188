@@ -47,7 +47,7 @@ bool rk29_get_backlight_status(void);
 #ifdef	CONFIG_FB_MIRRORING
 
 #define OLEGK0_CHANGED 1
-
+#define GALLAND_CHANGED 1 //define it or else booting breaks on rk30_lcdc (affects only rk30 devices)
 
 int (*video_data_to_mirroring)(struct fb_info *info,u32 yuv_phy[2]) = NULL;
 EXPORT_SYMBOL(video_data_to_mirroring);
@@ -106,7 +106,9 @@ static int rk_fb_open(struct fb_info *info,int user)
     else
     {
     	dev_drv->open(dev_drv,layer_id,1);
+#if !defined(GALLAND_CHANGED) || !defined(CONFIG_ARCH_RK30)  //Galland unbreak rk30 boot
 	dev_drv->load_screen(dev_drv,1);
+#endif
     }
     
     return 0;
@@ -418,6 +420,19 @@ static int rk_fb_blank(int blank_mode, struct fb_info *info)
 #endif
 	{
 		dev_drv->blank(dev_drv,layer_id,blank_mode);
+#if defined(GALLAND_CHANGED)
+/* Galland: the following lines have been removed but were present in prev 3.0.36 kernel (with no rk31)
+		if(strstr(saved_command_line,"charger") == NULL){//ÔÚ·Ç³äµç½çÃæ£¬hdmi ²Å×ß¸ÃÂ·¾¶
+			if(blank_mode == FB_BLANK_NORMAL){
+				if(dev_drv->screen_ctr_info->lcd_disable)
+					dev_drv->screen_ctr_info->lcd_disable();
+			}else{
+				if(dev_drv->screen_ctr_info->lcd_enable)
+					dev_drv->screen_ctr_info->lcd_enable();
+	      }
+		}
+*/
+#endif
 	}
 	return 0;
 }
@@ -1344,8 +1359,34 @@ int rk_fb_register(struct rk_lcdc_device_driver *dev_drv,
     	}
     	lcdc_id = i;
 	init_lcdc_device_driver(dev_drv, def_drv,id);
-	
+
+#if defined(GALLAND_CHANGED) && defined(CONFIG_ARCH_RK30)  //Galland unbreak rk30 boot
+	if(dev_drv->screen_ctr_info->set_screen_info)
+	{
+		dev_drv->screen_ctr_info->set_screen_info(dev_drv->cur_screen,
+			dev_drv->screen_ctr_info->lcd_info);
+		if(SCREEN_NULL==dev_drv->cur_screen->type)
+		{
+			printk(KERN_WARNING "no display device on lcdc%d!?\n",dev_drv->id);
+			fb_inf->num_lcdc--;
+			return -ENODEV;
+		}
+		if(dev_drv->screen_ctr_info->io_init)
+			dev_drv->screen_ctr_info->io_init(NULL);
+	}
+	else
+	{
+		printk(KERN_WARNING "no display device on lcdc%d!?\n",dev_drv->id);
+		fb_inf->num_lcdc--;
+		return -ENODEV;
+	}
+#endif
+
+
 	dev_drv->init_lcdc(dev_drv);
+#if defined(GALLAND_CHANGED) && defined(CONFIG_ARCH_RK30)  //Galland unbreak rk30 boot
+	dev_drv->load_screen(dev_drv,1);
+#endif
 	/************fb set,one layer one fb ***********/
 	dev_drv->fb_index_base = fb_inf->num_fb;
 	for(i=0;i<dev_drv->num_layer;i++)
@@ -1497,7 +1538,13 @@ static void rkfb_early_suspend(struct early_suspend *h)
 	{
 		if (!inf->lcdc_dev_drv[i])
 			continue;
-			
+
+#if defined(GALLAND_CHANGED) && defined(CONFIG_ARCH_RK30)  //Galland unbreak rk30 boot
+		if(inf->lcdc_dev_drv[i]->screen0->standby)
+			inf->lcdc_dev_drv[i]->screen0->standby(1);
+		if(inf->lcdc_dev_drv[i]->screen_ctr_info->io_disable)
+			inf->lcdc_dev_drv[i]->screen_ctr_info->io_disable();
+#endif
 		inf->lcdc_dev_drv[i]->suspend(inf->lcdc_dev_drv[i]);
 	}
 }
@@ -1511,8 +1558,17 @@ static void rkfb_early_resume(struct early_suspend *h)
 	{
 		if (!inf->lcdc_dev_drv[i])
 			continue;
+#if defined(GALLAND_CHANGED) && defined(CONFIG_ARCH_RK30)  //Galland unbreak rk30 boot
+		if(inf->lcdc_dev_drv[i]->screen_ctr_info->io_enable) 		//power on
+			inf->lcdc_dev_drv[i]->screen_ctr_info->io_enable();
+#endif
 		
 		inf->lcdc_dev_drv[i]->resume(inf->lcdc_dev_drv[i]);	       // data out
+
+#if defined(GALLAND_CHANGED) && defined(CONFIG_ARCH_RK30)  //Galland unbreak rk30 boot
+		if(inf->lcdc_dev_drv[i]->screen0->standby)
+			inf->lcdc_dev_drv[i]->screen0->standby(0);	      //screen wake up
+#endif
 	}
 
 }
