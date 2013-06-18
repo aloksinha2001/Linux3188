@@ -85,6 +85,7 @@
 #include <linux/gps.h>
 #endif
 
+/* Galland (or else boot breaks on HDMI, at least for 1080p and MALI)
 #ifdef  CONFIG_THREE_FB_BUFFER
 	#ifdef CONFIG_BOX_FB_1080P
 		#define RK30_FB0_MEM_SIZE 24*SZ_1M
@@ -98,6 +99,16 @@
 		#define RK30_FB0_MEM_SIZE 8*SZ_1M
 	#endif
 #endif
+Galland */
+
+//Galland: for MALI support
+#ifdef  CONFIG_THREE_FB_BUFFER
+#define RK30_FB0_MEM_SIZE 12*SZ_1M
+#else
+#define RK30_FB0_MEM_SIZE 8*SZ_1M
+#endif
+
+
 #ifdef CONFIG_BOX_FB_1080P
 	#define RK30_IPP_MEM_SIZE 32*SZ_1M 
 #else
@@ -810,7 +821,7 @@ static struct platform_device device_fb = {
 	.num_resources	= ARRAY_SIZE(resource_fb),
 	.resource	= resource_fb,
 };
-#endif
+#endif   //#ifdef CONFIG_FB_ROCKCHIP
 
 #if defined(CONFIG_LCDC0_RK30)
 static struct resource resource_lcdc0[] = {
