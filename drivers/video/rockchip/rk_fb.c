@@ -44,14 +44,13 @@
 void rk29_backlight_set(bool on);
 bool rk29_get_backlight_status(void);
 
-#ifdef	CONFIG_FB_MIRRORING
-
 #define OLEGK0_CHANGED 1
 #define GALLAND_CHANGED 1 //define it or else booting breaks on rk30_lcdc (affects only rk30 devices)
 
+
+#ifdef	CONFIG_FB_MIRRORING
 int (*video_data_to_mirroring)(struct fb_info *info,u32 yuv_phy[2]) = NULL;
 EXPORT_SYMBOL(video_data_to_mirroring);
-
 #endif
 static struct platform_device *g_fb_pdev;
 
