@@ -1303,7 +1303,7 @@ static int rk_platform_add_display_devices(void)
 	
 }
 
-#ifdef GALLAND_CHANGED
+#if defined(GALLAND_CHANGED) && (defined(CONFIG_LCDC0_RK3188) && !defined(CONFIG_LCDC1_RK3188))
 
 static struct rkdisplay_platform_data hdmi_data = {
 	.property 		= DISPLAY_MAIN,
