@@ -1160,7 +1160,7 @@ static int rk_request_fb_buffer(struct fb_info *fbi,int fb_id)
 	struct rk_fb_inf *fb_inf = platform_get_drvdata(g_fb_pdev);
 	if (!strcmp(fbi->fix.id,"fb0"))
 	{
-#ifdef OLEGK0_CHANGED
+#if defined(OLEGK0_CHANGED) && defined(CONFIG_MALI)
       res = platform_get_resource_byname(g_fb_pdev, IORESOURCE_MEM, "ipp buf");
 #else
 		res = platform_get_resource_byname(g_fb_pdev, IORESOURCE_MEM, "fb0 buf");
@@ -1177,7 +1177,7 @@ static int rk_request_fb_buffer(struct fb_info *fbi,int fb_id)
 		memset(fbi->screen_base, 0, fbi->fix.smem_len);
 		printk("fb%d:phy:%lx>>vir:%p>>len:0x%x\n",fb_id,
 		fbi->fix.smem_start,fbi->screen_base,fbi->fix.smem_len);
-#ifdef OLEGK0_CHANGED
+#if defined(OLEGK0_CHANGED) && defined(CONFIG_MALI)
 		//Galland: next three lines copied to fb_id 0 from olegk0's fb_id 1
 		fbi->fix.mmio_len = (fbi->fix.smem_len >> 1)& ~7;
 		fbi->fix.mmio_start = fbi->fix.smem_start + fbi->fix.mmio_len;

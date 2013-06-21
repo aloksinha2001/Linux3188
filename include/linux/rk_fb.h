@@ -72,7 +72,7 @@
 #define RK_FBIOSET_VSYNC_ENABLE		0x4629
 #define RK_FBIOPUT_NUM_BUFFERS 	0x4625
 
-#ifdef OLEGK0_CHANGED
+#if defined(OLEGK0_CHANGED) && defined(CONFIG_MALI)
    #define FBIOPUT_SET_COLORKEY		0x5010 //IAM
    #define GET_UMP_SECURE_ID_BUF1 _IOWR('m', 310, unsigned int)
    #define GET_UMP_SECURE_ID_BUF2 _IOWR('m', 311, unsigned int) 
