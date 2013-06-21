@@ -53,6 +53,11 @@
 #if defined(CONFIG_MFD_RK610)
 #include <linux/mfd/rk610_core.h>
 #endif
+
+#if defined(CONFIG_RK_HDMI)
+	#include "../../../drivers/video/rockchip/hdmi/rk_hdmi.h"
+#endif
+
 //$_rbox_$_modify_$ zhengyang modified for box
 #include <linux/display-sys.h>
 #include <linux/rk_fb.h>
@@ -1297,6 +1302,18 @@ static int rk_platform_add_display_devices(void)
 	return 0;
 	
 }
+
+#ifdef GALLAND_CHANGED
+
+static struct rkdisplay_platform_data hdmi_data = {
+	.property 		= DISPLAY_MAIN,
+	.video_source 	= DISPLAY_SOURCE_LCDC0,
+	.io_pwr_pin 	= INVALID_GPIO,
+	.io_reset_pin 	= RK30_PIN3_PD4,
+};
+
+#else
+
 //$_rbox_$_modify_$ zhengyang modified for box
 static struct rkdisplay_platform_data hdmi_data = {
 	.property 		= DISPLAY_MAIN,
@@ -1315,6 +1332,9 @@ static struct rkdisplay_platform_data tv_data = {
 };
 #endif
 //$_rbox_$_modify_$ zhengyang modified end
+
+#endif
+
 
 // i2c
 #ifdef CONFIG_I2C0_RK30
