@@ -83,6 +83,11 @@
 #include "../mach-rk30/board-rk31-vmac.c"
 #endif
 
+
+
+#define GALLAND_CHANGED 1
+
+
 static struct rk29_keys_button key_button[] = {
 	{
 		.desc	= "play",
@@ -461,25 +466,41 @@ static int rk_fb_io_enable(void)
 	return 0;
 }
 
-#if defined(CONFIG_LCDC0_RK3188)
-struct rk29fb_info lcdc0_screen_info = {
-	.prop           = EXTEND,       //extend display device
-       .lcd_info  = NULL,
-       .set_screen_info = set_lcd_info,
+#if defined(GALLAND_CHANGED) && (defined(CONFIG_LCDC0_RK3188) && !defined(CONFIG_LCDC1_RK3188))
 
-};
-#endif
+   struct rk29fb_info lcdc0_screen_info = {
+      .prop	   = PRMRY,		//primary display device
+      .io_init   = rk_fb_io_init,
+      .io_disable = rk_fb_io_disable,
+      .io_enable = rk_fb_io_enable,
+      .set_screen_info = set_lcd_info,
+      
+   };
 
-#if defined(CONFIG_LCDC1_RK3188)
-struct rk29fb_info lcdc1_screen_info = {
-	.prop	   = PRMRY,		//primary display device
-	.io_init   = rk_fb_io_init,
-	.io_disable = rk_fb_io_disable,
-	.io_enable = rk_fb_io_enable,
-	.set_screen_info = set_lcd_info,
-	
-};
-#endif
+#else
+
+   #if defined(CONFIG_LCDC0_RK3188)
+   struct rk29fb_info lcdc0_screen_info = {
+      .prop           = EXTEND,       //extend display device
+          .lcd_info  = NULL,
+          .set_screen_info = set_lcd_info,
+
+   };
+   #endif
+
+   #if defined(CONFIG_LCDC1_RK3188)
+   struct rk29fb_info lcdc1_screen_info = {
+      .prop	   = PRMRY,		//primary display device
+      .io_init   = rk_fb_io_init,
+      .io_disable = rk_fb_io_disable,
+      .io_enable = rk_fb_io_enable,
+      .set_screen_info = set_lcd_info,
+      
+   };
+   #endif
+
+#endif //GALLAND_CHANGED
+
 
 static struct resource resource_fb[] = {
 	[0] = {
