@@ -25,7 +25,12 @@
 
 #include <plat/efuse.h>
 
-#define OMEGAMOON_CHANGED			1
+#define OMEGAMOON_CHANGED			1   //RK30 changes, but this ddr.c is used by mach-rk3188's Makefile too
+
+#if defined(OMEGAMOON_CHANGED) && defined(CONFIG_ARCH_RK3188)
+   #undef OMEGAMOON_CHANGED   //this ddr.c works fine for the RK31, but needs Omegamoon's changes for RK30
+#endif
+
 #ifdef OMEGAMOON_CHANGED
 //#define DDR_DELAY()	do { unsigned int i=(loops_per_us); barrier(); asm volatile(".align 4; 1: subs %0, %0, #1; bne 1b;" : "+r" (i)); } while (0)
 #define DDR_DELAY() { volatile uint32_t count=loops_per_us; while(count--) barrier(); }
