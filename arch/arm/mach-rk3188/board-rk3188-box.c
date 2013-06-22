@@ -408,7 +408,7 @@ static struct sensor_platform_data cm3217_info = {
 #define LCD_CS_PIN         INVALID_GPIO
 #define LCD_CS_VALUE       GPIO_HIGH
 
-#define LCD_EN_PIN         RK30_PIN0_PB0
+#define LCD_EN_PIN         INVALID_GPIO //Galland RK30_PIN0_PB0
 #define LCD_EN_VALUE       GPIO_LOW
 
 static int rk_fb_io_init(struct rk29_fb_setting_info *fb_setting)
@@ -2003,7 +2003,7 @@ static void rk30_pm_power_off(void)
 
 static void __init machine_rk30_board_init(void)
 {
-	//avs_init();
+	//avs_init(); //Galland: dvfs?
 	gpio_request(POWER_ON_PIN, "poweronpin");
 	gpio_direction_output(POWER_ON_PIN, GPIO_HIGH);
 	
