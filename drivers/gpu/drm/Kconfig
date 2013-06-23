@@ -158,3 +158,11 @@ config DRM_SAVAGE
 	help
 	  Choose this option if you have a Savage3D/4/SuperSavage/Pro/Twister
 	  chipset. If M is selected the module will be called savage.
+
+config DRM_MALI
+	tristate "Mali DRM supprt"
+	depends on DRM
+	depends on MALI
+	help
+	    Choose this option if you have a Mali 200 or Mali 400 gpu
+	    If M is selected the module will be called mali_drm.

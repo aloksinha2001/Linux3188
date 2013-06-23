@@ -1,0 +1,9 @@
+KDIR-ct1176:=/projects/pr297/linux/eb_ct1176/current/linux
+KDIR-pb926:=/projects/pr297/linux/pb926/current/linux
+KDIR-ct11mp:=/projects/pr297/linux/eb_ct11mp/current/linux
+KDIR-pb11mp:=/projects/pr297/linux/pb11mp/current/linux
+KDIR-pba8:=/projects/pr297/linux/pba8/current/linux
+KDIR-pbxa9:=/projects/pr297/linux/pbxa9/current/linux
+KDIR-tcc8900:=/projects/pr297/linux/tcc8900/current/linux
+KDIR-au1300:=/projects/pr297/linux/rmi-db1300/current/linux
+KDIR-u8500:=/projects/pr297/linux/MOP500/current/linux

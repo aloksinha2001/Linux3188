@@ -304,11 +304,11 @@ struct hdmi {
 #define HDMI_SET_AUDIO			(HDMI_SYSFS_SRC		| 6)
 #define HDMI_SET_3D				(HDMI_SYSFS_SRC		| 7)
 
-#define HDMI_DEFAULT_SCALE		95
-#define HDMI_AUTO_CONFIG		false
+#define HDMI_DEFAULT_SCALE		100 //Galland
+#define HDMI_AUTO_CONFIG		true //Galland   false
 
 // HDMI default vide mode
-#define HDMI_VIDEO_DEFAULT_MODE			HDMI_1280x720p_60HZ//HDMI_1920x1080p_60HZ
+#define HDMI_VIDEO_DEFAULT_MODE		HDMI_1920x1080p_60HZ //	HDMI_1280x720p_60HZ
 
 // HDMI default audio parameter
 #define HDMI_AUDIO_DEFAULT_TYPE 		HDMI_AUDIO_LPCM
