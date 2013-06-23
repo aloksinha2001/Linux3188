@@ -1309,7 +1309,7 @@ static struct rkdisplay_platform_data hdmi_data = {
 	.property 		= DISPLAY_MAIN,
 	.video_source 	= DISPLAY_SOURCE_LCDC0,
 	.io_pwr_pin 	= INVALID_GPIO,
-	.io_reset_pin 	= RK30_PIN3_PD4,
+	.io_reset_pin 	= RK30_PIN3_PB2,
 };
 
 #else
