@@ -1,6 +1,6 @@
-//$_FOR_ROCKCHIP_RBOX_$
-/* arch/arm/mach-rk30/board-rk30-sdk.c
+/* based on arch/arm/mach-rk30/board-rk30-sdk.c
  *
+ * Copyright (C) 2013 Omegamoon
  * Copyright (C) 2012 ROCKCHIP, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -46,14 +46,18 @@
 #include <linux/rfkill-rk.h>
 #include <linux/sensor-dev.h>
 #include <linux/regulator/rk29-pwm-regulator.h>
-//$_rbox_$_modify_$ zhengyang modified for box
 #include <linux/display-sys.h>
 #include <linux/rk_fb.h>
-//$_rbox_$_modify_$ zhengyang modified end
+
+#define OMEGAMOON_CHANGED			1
+
 #if defined(CONFIG_MFD_RK610)
 #include <linux/mfd/rk610_core.h>
 #endif
 
+#if defined(CONFIG_RK_HDMI)
+	#include "../../../drivers/video/rockchip/hdmi/rk_hdmi.h"
+#endif
 
 #if defined(CONFIG_SPIM_RK29)
 #include "../../../drivers/spi/rk29_spim.h"
@@ -74,16 +78,14 @@
 #include "../../../drivers/staging/android/timed_gpio.h"
 #endif
 
-/*$_rbox_$_modify_$_huangzhibao begin*/
 #ifdef CONFIG_RK_REMOTECTL
 #include <mach/remotectl.h>
 #endif
-/*$_rbox_$_modify_$_huangzhibao endif*/
 #if defined(CONFIG_MT6620)
 #include <linux/gps.h>
 #endif
 
-//$_rbox_$_modify_$_zhengyang modified for framebuffer size
+/* Galland (or else boot breaks on HDMI, at least for 1080p and MALI)
 #ifdef  CONFIG_THREE_FB_BUFFER
 	#ifdef CONFIG_BOX_FB_1080P
 		#define RK30_FB0_MEM_SIZE 24*SZ_1M
@@ -97,13 +99,27 @@
 		#define RK30_FB0_MEM_SIZE 8*SZ_1M
 	#endif
 #endif
-//$_rbox_$_modify_$_zhengyang modified end
+Galland */
+
+//Galland: for MALI support
+#ifdef  CONFIG_THREE_FB_BUFFER
+#define RK30_FB0_MEM_SIZE 12*SZ_1M
+#else
+#define RK30_FB0_MEM_SIZE 8*SZ_1M
+#endif
+
+
+#ifdef CONFIG_BOX_FB_1080P
+	#define RK30_IPP_MEM_SIZE 32*SZ_1M 
+#else
+	#define RK30_IPP_MEM_SIZE 16*SZ_1M
+#endif
+
 #if defined(CONFIG_DP501)   //for display port transmitter dp501
 #include<linux/dp501.h>
 #endif
 
 #include "board-rk30-sdk-camera.c"
-
 #include <plat/key.h>
 static struct rk29_keys_button key_button[] = {
 	{
@@ -667,20 +683,22 @@ static struct sensor_platform_data light_stk3171_info = {
 #endif
 #ifdef CONFIG_FB_ROCKCHIP
 
-// For BOX, there is no lcd screen, so we need not to set following gpio.
-#if  defined(CONFIG_MACH_RK30_BOX_PIZZA) || defined(CONFIG_MACH_RK30_BOX)
+#define LCD_CS_MUX_NAME    GPIO4C7_SMCDATA7_TRACEDATA7_NAME
+#define LCD_CS_VALUE       GPIO_HIGH
+#define LCD_EN_MUX_NAME    GPIO4C7_SMCDATA7_TRACEDATA7_NAME
+#define LCD_EN_VALUE       GPIO_LOW
+
+// We have no build-in lcd screen, so we need not to set following gpio.
+//#if  defined(CONFIG_MACH_RK30_BOX_PIZZA) || defined(CONFIG_MACH_RK30_BOX)
+
 #define LCD_CS_PIN         INVALID_GPIO
-#define LCD_CS_VALUE       GPIO_HIGH
-
 #define LCD_EN_PIN         INVALID_GPIO
-#define LCD_EN_VALUE       GPIO_LOW
-#else
-#define LCD_CS_PIN         RK30_PIN4_PC7
-#define LCD_CS_VALUE       GPIO_HIGH
 
-#define LCD_EN_PIN         RK30_PIN6_PB4
-#define LCD_EN_VALUE       GPIO_LOW
-#endif
+//#else
+// Omegamoon >> TODO: Create separate KConfig option in cases where there is a build-in lcd
+//#define LCD_CS_PIN         RK30_PIN4_PC7
+//#define LCD_EN_PIN         RK30_PIN6_PB4
+//#endif
 
 static int rk_fb_io_init(struct rk29_fb_setting_info *fb_setting)
 {
@@ -758,9 +776,7 @@ struct rk29fb_info lcdc1_screen_info = {
 	#if defined(CONFIG_RK_HDMI)
 	.prop		= EXTEND,	//extend display device
 	.lcd_info  = NULL,
-	//$_rbox_$_modify_$ For BOX, lcdc1 default screen timing same as lcdc0.
-	.set_screen_info = set_lcd_info,
-	//$_rbox_$_modify_$ end
+	.set_screen_info = hdmi_init_lcdc, //Galland: new kernel points to:  set_lcd_info,  (with rbox comment: For BOX, lcdc1 default screen timing same as lcdc0.)
 	#endif
 };
 #endif
@@ -784,6 +800,19 @@ static struct resource resource_fb[] = {
 		.end   = 0,//RK30_FB0_MEM_SIZE - 1,
 		.flags = IORESOURCE_MEM,
 	},
+	// Omegamoon >> Added Mali support
+   [3] = {
+      .name  = "mali sdram",
+      .start = 0,
+      .end   = 0,//RK30_FB0_MEM_SIZE - 1,
+      .flags = IORESOURCE_MEM,
+   },
+   [4] = {
+      .name  = "mali fb",
+      .start = 0,
+      .end   = 0,//RK30_FB0_MEM_SIZE - 1,
+      .flags = IORESOURCE_MEM,
+   },
 };
 
 static struct platform_device device_fb = {
@@ -792,7 +821,7 @@ static struct platform_device device_fb = {
 	.num_resources	= ARRAY_SIZE(resource_fb),
 	.resource	= resource_fb,
 };
-#endif
+#endif   //#ifdef CONFIG_FB_ROCKCHIP
 
 #if defined(CONFIG_LCDC0_RK30)
 static struct resource resource_lcdc0[] = {
@@ -973,7 +1002,6 @@ static struct platform_device rk29_device_vibrator = {
 
 #ifdef CONFIG_LEDS_GPIO_PLATFORM
 static struct gpio_led rk29_leds[] = {
-	//$_rbox_$_modify_$_zhengyang modified
 #ifdef CONFIG_DISPLAY_KEY_LED_CONTROL
 	#ifdef CONFIG_HDMI_RK30
 	{
@@ -1031,7 +1059,6 @@ static struct gpio_led rk29_leds[] = {
 		.default_state = LEDS_GPIO_DEFSTATE_ON,
 	},
 #endif
-	//$_rbox_$_modify_$ end
 };
 
 static struct gpio_led_platform_data rk29_leds_pdata = {
@@ -1344,7 +1371,6 @@ static struct platform_device rk30_device_adc_battery = {
 };
 #endif
 
-/*$_rbox_$_modify_$_zhengyang_begin$_20120704_$*/
 /*
  * Codec for the ASoC Rockchip HDMI machine driver
  */
@@ -1363,9 +1389,6 @@ static struct platform_device rockchip_hdmi_audio = {
 	.id	= -1,
 };
 #endif
-/*$_rbox_$_modify_$_zhengyang_end$_20120704_$*/
-
-/*$_rbox_$_modify_$_huangzhibao_begin$_20120508_$*/
 #ifdef CONFIG_RK_REMOTECTL
 
 void rk30_remotectl_iomux(void)
@@ -1388,17 +1411,17 @@ static struct platform_device rk30_device_remotectl = {
 	},
 };
 #endif
-/*$_rbox_$_modify_$_huangzhibao_end$_20120508_$*/
-
 #ifdef CONFIG_RK30_PWM_REGULATOR
+
+// Galland: any changes done here to pwm_voltage_map must also be replicated at the same table in /drivers/regulator/rk30-pwm-regulator.c
 const static int pwm_voltage_map[] = {
 	950000,975000,1000000, 1025000, 1050000, 1075000, 1100000, 1125000, 1150000, 1175000, 1200000, 1225000, 1250000, 1275000, 1300000, 1325000, 1350000, 1375000, 1400000
 };
 
 static struct regulator_consumer_supply pwm_dcdc1_consumers[] = {
-	{
-		.supply = "vdd_core",
-	}
+        {
+                .supply = "vdd_core",
+        }
 };
 
 struct regulator_init_data pwm_regulator_init_dcdc[1] =
@@ -1592,22 +1615,21 @@ static struct platform_device *devices[] __initdata = {
 #ifdef CONFIG_MT5931_MT6622
 	&device_mt6622,
 #endif
-/*$_rbox_$_modify_$_huangzhibao_begin$_20120508_$*/
 #ifdef CONFIG_RK_REMOTECTL	
+#ifdef OMEGAMOON_CHANGED
+  // Omegamoon >> Since remotectl is generating an kernel oops, leave it out for now
+#else
     &rk30_device_remotectl,
 #endif
-/*$_rbox_$_modify_$_huangzhibao_end$_20120508_$*/
-/*$_rbox_$_modify_$_zhengyang_begin$_20120704_$*/
+#endif
 #ifdef CONFIG_SND_SOC_RK_HDMI_CODEC
 	&rockchip_hdmi_codec,
 #endif
 #ifdef CONFIG_SND_RK_SOC_HDMI
 	&rockchip_hdmi_audio,
 #endif
-/*$_rbox_$_modify_$_zhengyang_end$_20120704_$*/
 };
 
-/*$_rbox_$_modify_$_zhengyang_begin$_20120704_$*/
 #if defined(CONFIG_SII902XA)
 static struct rkdisplay_platform_data hdmi_data = {
 	#ifdef CONFIG_HDMI_RK30
@@ -1638,7 +1660,6 @@ static struct rkdisplay_platform_data tv_data = {
 #endif
 };
 #endif
-/*$_rbox_$_modify_$_zhengyang_end$_20120704_$*/
 
 static int rk_platform_add_display_devices(void)
 {
@@ -1809,11 +1830,83 @@ static struct i2c_board_info __initdata i2c0_info[] = {
 int __sramdata g_pmic_type =  0;
 #ifdef CONFIG_I2C1_RK30
 #ifdef CONFIG_MFD_WM831X_I2C
-#include "board-rk30-sdk-wm8326.c"
+//Galland  #include "board-rk30-sdk-wm8326.c"
+#define PMU_POWER_SLEEP RK30_PIN6_PB1	//Galland from board-rk30-sdk-wm8326.c
+#include "board-pmu-wm8326.c" //Galland
 #endif
 #ifdef CONFIG_MFD_TPS65910
+//Galland #define TPS65910_HOST_IRQ        RK30_PIN6_PA4
+//Galland #include "board-rk30-sdk-tps65910.c"
+//Galland struct from board-rk3168-ds1006h.c but with values from board-rk30-sdk-tps65910.c
+#ifdef CONFIG_ARCH_RK3066B
+#define TPS65910_HOST_IRQ        RK30_PIN0_PB3
+#else
 #define TPS65910_HOST_IRQ        RK30_PIN6_PA4
-#include "board-rk30-sdk-tps65910.c"
+#endif
+
+#define PMU_POWER_SLEEP RK30_PIN6_PB1 //Galland from board-rk30-sdk-tps65910.c (and PMIC_SLEEP in schematic)
+
+static struct pmu_info  tps65910_dcdc_info[] = {
+	{
+		.name          = "vdd_cpu",   //logic
+		.min_uv          = 1200000,
+		.max_uv         = 1200000,
+	},
+	{
+		.name          = "vdd2",    //ddr
+		.min_uv          = 1200000,
+		.max_uv         = 1200000,
+	},
+	{
+		.name          = "vio",   //vcc_io
+		.min_uv          = 3000000,
+		.max_uv         = 3000000,
+	},
+	{
+		.name          = "vaux1",   //vcc25_hdmi
+		.min_uv          = 2500000,
+		.max_uv         = 2500000,
+	},
+};
+static  struct pmu_info  tps65910_ldo_info[] = {
+	{
+		.name          = "vpll",   //vcc25
+		.min_uv          = 2500000,
+		.max_uv         = 2500000,
+	},
+	{
+		.name          = "vdig1",    //vcc18_cif
+		.min_uv          = 1800000,
+		.max_uv         = 1800000,
+	},
+	{
+		.name          = "vdig2",   //vdd11
+		.min_uv          = 1100000,
+		.max_uv         = 1100000,
+	},
+	{
+		.name          = "vmmc",   //vcc28_cif
+		.min_uv          = 2800000,
+		.max_uv         = 2800000,
+	},
+	{
+		.name          = "vaux2",   //vcca33
+		.min_uv          = 3300000,
+		.max_uv         = 3300000,
+	},
+	{
+		.name          = "vaux33",   //vcc_tp
+		.min_uv          = 3300000,
+		.max_uv         = 3300000,
+	},
+	{
+		.name          = "vdac",   //vccio_wl
+		.min_uv          = 1800000,
+		.max_uv         = 1800000,
+	},
+ };
+
+#include "board-pmu-tps65910.c"
 #endif
 
 static struct i2c_board_info __initdata i2c1_info[] = {
@@ -1881,7 +1974,6 @@ static struct i2c_board_info __initdata i2c2_info[] = {
 		.platform_data = &cm3217_info,
 	},
 #endif
-
 #if defined(CONFIG_DP501)
 	{
 		.type = "dp501",
@@ -1927,23 +2019,15 @@ static struct i2c_board_info __initdata i2c4_info[] = {
 #endif
 
 #ifdef CONFIG_I2C_GPIO_RK30
-// For Pizza board sii9024a, must use gpio i2c to read edid.
-#ifdef CONFIG_MACH_RK30_BOX_PIZZA
-#define I2C_SDA_PIN     RK30_PIN3_PA0   //set sda_pin here
-#define I2C_SCL_PIN     RK30_PIN3_PA1	//set scl_pin here
-#else
 #define I2C_SDA_PIN     INVALID_GPIO// RK30_PIN2_PD6   //set sda_pin here
 #define I2C_SCL_PIN     INVALID_GPIO// RK30_PIN2_PD7   //set scl_pin here
-#endif
+
 static int rk30_i2c_io_init(void)
 {
         //set iomux (gpio) here
         //rk30_mux_api_set(GPIO2D7_I2C1SCL_NAME, GPIO2D_GPIO2D7);
         //rk30_mux_api_set(GPIO2D6_I2C1SDA_NAME, GPIO2D_GPIO2D6);
-	#ifdef CONFIG_MACH_RK30_BOX_PIZZA
-	rk30_mux_api_set(GPIO3A1_I2C2SCL_NAME, GPIO3A_GPIO3A1);
-    rk30_mux_api_set(GPIO3A0_I2C2SDA_NAME, GPIO3A_GPIO3A0);
-	#endif
+
         return 0;
 }
 struct i2c_gpio_platform_data default_i2c_gpio_data = {
@@ -2053,6 +2137,11 @@ static void __init rk30_reserve(void)
 #ifdef CONFIG_FB_ROCKCHIP
 	resource_fb[0].start = board_mem_reserve_add("fb0 buf", RK30_FB0_MEM_SIZE);
 	resource_fb[0].end = resource_fb[0].start + RK30_FB0_MEM_SIZE - 1;
+#ifdef OMEGAMOON_CHANGED
+//  Omegamoon >> Referenced in drivers/video/rockchip/rk_fb.c
+	resource_fb[1].start = board_mem_reserve_add("ipp buf", RK30_IPP_MEM_SIZE);
+	resource_fb[1].end = resource_fb[1].start + RK30_IPP_MEM_SIZE - 1;
+#endif
 #if 0
 	resource_fb[1].start = board_mem_reserve_add("ipp buf", RK30_FB0_MEM_SIZE);
 	resource_fb[1].end = resource_fb[1].start + RK30_FB0_MEM_SIZE - 1;
@@ -2077,6 +2166,7 @@ static void __init rk30_reserve(void)
  * comments	: min arm/logic voltage
  */
 static struct dvfs_arm_table dvfs_cpu_logic_table[] = {
+	{.frequency = 126 * 1000,  .cpu_volt = 1075 * 1000,   .logic_volt = 1125 * 1000},//0.975V/1.000V //Galland: for lower idle power (cpufreq.c line 214 suggests this frequency is supported) 0.975V/1V and 1.025/1.05V don't work for Measy U2C
 	{.frequency = 252 * 1000,	.cpu_volt = 1075 * 1000,	.logic_volt = 1125 * 1000},//0.975V/1.000V
 	{.frequency = 504 * 1000,	.cpu_volt = 1100 * 1000,	.logic_volt = 1125 * 1000},//0.975V/1.000V
 	{.frequency = 816 * 1000,	.cpu_volt = 1125 * 1000,	.logic_volt = 1150 * 1000},//1.000V/1.025V
@@ -2085,7 +2175,7 @@ static struct dvfs_arm_table dvfs_cpu_logic_table[] = {
 	{.frequency = 1272 * 1000,	.cpu_volt = 1225 * 1000,	.logic_volt = 1200 * 1000},//1.150V/1.100V
 	{.frequency = 1416 * 1000,	.cpu_volt = 1300 * 1000,	.logic_volt = 1200 * 1000},//1.225V/1.100V
 	{.frequency = 1512 * 1000,	.cpu_volt = 1350 * 1000,	.logic_volt = 1250 * 1000},//1.300V/1.150V
-	{.frequency = 1608 * 1000,	.cpu_volt = 1425 * 1000,	.logic_volt = 1300 * 1000},//1.325V/1.175V
+	{.frequency = 1608 * 1000,	.cpu_volt = 1400 * 1000,	.logic_volt = 1300 * 1000},//1.325V/1.175V
 	{.frequency = CPUFREQ_TABLE_END},
 };
 
@@ -2106,12 +2196,35 @@ static struct cpufreq_frequency_table dvfs_ddr_table[] = {
 static struct cpufreq_frequency_table cpu_dvfs_table[DVFS_CPU_TABLE_SIZE];
 static struct cpufreq_frequency_table dep_cpu2core_table[DVFS_CPU_TABLE_SIZE];
 
+#ifdef OMEGAMOON_CHANGED
+void rk30_clk_dump_regs(void);
+#endif
+
 void __init board_clock_init(void)
 {
+#ifdef OMEGAMOON_CHANGED
+	printk("Omegamoon >> %s called\n", __func__);
+#endif
 	rk30_clock_data_init(periph_pll_default, codec_pll_default, RK30_CLOCKS_DEFAULT_FLAGS);
 	dvfs_set_arm_logic_volt(dvfs_cpu_logic_table, cpu_dvfs_table, dep_cpu2core_table);
 	dvfs_set_freq_volt_table(clk_get(NULL, "gpu"), dvfs_gpu_table);
 	dvfs_set_freq_volt_table(clk_get(NULL, "ddr"), dvfs_ddr_table);
+#ifdef OMEGAMOON_CHANGED
+	dvfs_clk_enable_limit(clk_get(NULL, "gpu"), 133 * 1000000, 266 * 1000000);
+	dvfs_clk_enable_limit(clk_get(NULL, "cpu"), 126 * 1000000, 1608 * 1000000);
+#endif
+#ifdef OMEGAMOON_CHANGED
+	//printk("Omegamoon >> rk30_clk_dump_regs()...");
+	//rk30_clk_dump_regs();
+	printk("Omegamoon >> Current GPU frequency is %luMHz\n", clk_get_rate(clk_get(NULL, "gpu"))/1000000);
+	printk("Omegamoon >> Current CPU frequency is %luMHz\n", clk_get_rate(clk_get(NULL, "cpu"))/1000000);
+	printk("Omegamoon >> aclk_cpu = %lu MHz\n", clk_get_rate(clk_get(NULL, "aclk_cpu"))/1000000);
+	printk("Omegamoon >> hclk_cpu = %lu MHz\n", clk_get_rate(clk_get(NULL, "hclk_cpu"))/1000000);
+	printk("Omegamoon >> pclk_cpu = %lu MHz\n", clk_get_rate(clk_get(NULL, "pclk_cpu"))/1000000);
+	printk("Omegamoon >> aclk_periph = %lu MHz\n", clk_get_rate(clk_get(NULL, "aclk_periph"))/1000000);
+	printk("Omegamoon >> hclk_periph = %lu MHz\n", clk_get_rate(clk_get(NULL, "hclk_periph"))/1000000);
+	printk("Omegamoon >> pclk_periph = %lu MHz\n", clk_get_rate(clk_get(NULL, "pclk_periph"))/1000000);
+#endif
 }
 
 MACHINE_START(RK30, "RK30board")

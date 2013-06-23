@@ -1318,7 +1318,7 @@ EXPORT_SYMBOL_GPL(snd_soc_resume);
 
 static struct snd_soc_dai_ops null_dai_ops = {
 };
-#define CODEC_NAME_CMP
+//Galland unbreak RK1000 audio codec #define CODEC_NAME_CMP
 static int soc_bind_dai_link(struct snd_soc_card *card, int num)
 {
 	struct snd_soc_dai_link *dai_link = &card->dai_link[num];

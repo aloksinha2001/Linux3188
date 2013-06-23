@@ -109,6 +109,24 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactive' governor for latency-sensitive workloads.
 
+config CPU_FREQ_DEFAULT_GOV_SMARTASS2
+	bool "smartass2"
+	select CPU_FREQ_GOV_SMARTASS2
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the CPUFreq governor 'smartassV2' as default.
+config CPU_FREQ_DEFAULT_GOV_HOTPLUG
+	bool "hotplug"
+	select CPU_FREQ_GOV_HOTPLUG
+	select CPU_FREQ_GOV_PERFORMANCE
+	help
+	  Use the CPUFreq governor 'hotplug' as default. This allows you
+	  to get a full dynamic frequency capable system with CPU
+	  hotplug support by simply loading your cpufreq low-level
+	  hardware driver.  Be aware that not all cpufreq drivers
+	  support the hotplug governor. If unsure have a look at
+	  the help section of the driver. Fallback governor will be the
+	  performance governor.
 endchoice
 
 config CPU_FREQ_GOV_PERFORMANCE
@@ -203,6 +221,29 @@ config CPU_FREQ_GOV_CONSERVATIVE
 	  module will be called cpufreq_conservative.
 
 	  For details, take a look at linux/Documentation/cpu-freq.
+	  If in doubt, say N.
+
+config CPU_FREQ_GOV_SMARTASS2
+	tristate "'smartassV2' cpufreq governor"
+	depends on CPU_FREQ
+	help
+	  'smartassV2' - a "smart" governor
+
+	  If in doubt, say N.
+
+config CPU_FREQ_GOV_INTERACTIVEX
+	tristate "'interactiveX' cpufreq policy governor"
+	depends on CPU_FREQ
+	help
+	  'InteractiveX' - Modified version of interactive with sleep+wake code.
+
+	  If in doubt, say N.
+
+config CPU_FREQ_GOV_SAVAGEDZEN
+	tristate "'savagedzen' cpufreq governor"
+	depends on CPU_FREQ
+	help
+	  'Savaged-Zen' - a "smartass" based governor
 
 	  If in doubt, say N.
 

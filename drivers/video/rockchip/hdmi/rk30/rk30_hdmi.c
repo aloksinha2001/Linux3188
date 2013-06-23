@@ -199,8 +199,9 @@ static int __devinit rk30_hdmi_probe (struct platform_device *pdev)
 	}
 		
 	rk30_hdmi->hdmi->dev = &pdev->dev;
-	rk30_hdmi->hdmi->xscale = 95;
-	rk30_hdmi->hdmi->yscale = 95;
+   // ADB: disable HDMI scaling by default
+	rk30_hdmi->hdmi->xscale = 100;
+	rk30_hdmi->hdmi->yscale = 100;
 	
 	hdmi_io_remap();
 		

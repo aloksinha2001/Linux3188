@@ -25,6 +25,17 @@
 
 #include <plat/efuse.h>
 
+#define OMEGAMOON_CHANGED			1   //RK30 changes, but this ddr.c is used by mach-rk3188's Makefile too
+
+#if defined(OMEGAMOON_CHANGED) && defined(CONFIG_ARCH_RK3188)
+   #undef OMEGAMOON_CHANGED   //this ddr.c works fine for the RK31, but needs Omegamoon's changes for RK30
+#endif
+
+#ifdef OMEGAMOON_CHANGED
+//#define DDR_DELAY()	do { unsigned int i=(loops_per_us); barrier(); asm volatile(".align 4; 1: subs %0, %0, #1; bne 1b;" : "+r" (i)); } while (0)
+#define DDR_DELAY() { volatile uint32_t count=loops_per_us; while(count--) barrier(); }
+#endif
+
 typedef uint32_t uint32;
 
 //#define ENABLE_DDR_CLCOK_GPLL_PATH  //for RK3188
@@ -1044,6 +1055,13 @@ static __sramdata volatile uint32_t loops_per_us;
 
 /*static*/ void __sramlocalfunc ddr_delayus(uint32_t us)
 {
+#ifdef OMEGAMOON_CHANGED_TRIED_BUT_DIDNT_WORK
+    volatile uint32_t count;
+     
+    count = loops_per_us*us;
+    while(count--)  // 3 cycles
+        barrier();
+#else
     do
     {
         unsigned int i = (loops_per_us*us);
@@ -1051,6 +1069,7 @@ static __sramdata volatile uint32_t loops_per_us;
         barrier();
         asm volatile(".align 4; 1: subs %0, %0, #1; bne 1b;" : "+r" (i));
     } while (0);
+#endif // OMEGAMOON_CHANGED
 }
 
 __sramfunc void ddr_copy(uint32 *pDest, uint32 *pSrc, uint32 words)
@@ -3081,32 +3100,71 @@ void __sramlocalfunc ddr_update_odt(void)
 
 __sramfunc void ddr_adjust_config(uint32_t dram_type)
 {
+#ifdef OMEGAMOON_CHANGED
+//    unsigned long flags;
+#endif
     uint32 value;
     unsigned long save_sp;
     u32 i;
     volatile u32 n; 
     volatile unsigned int * temp=(volatile unsigned int *)SRAM_CODE_OFFSET;
 
+	// Omegamoon >> I added calls to ddr_delayus in here. ddr_delayus is using
+	//   loops_per_us, which is assigned in ddr_set_freq. This routine is called 
+	//   after this routine, so the caller of ddr_adjust_config (ddr_init) needs 
+	//   to assign a valid value to ddr_delayus.
+#ifdef OMEGAMOON_CHANGED
+	//ddr_print("*[ddr_begin]*\n");
+	//ddr_print("*[ddr_begin]*\n");
+	//ddr_delayus(2000000); // 2 secs
+#endif
+
     //get data training address before idle port
     value = ddr_get_datatraing_addr();
 
     /** 1. Make sure there is no host access */
+#ifdef OMEGAMOON_CHANGED
+//	dsb();
+//	ddr_delayus(1);
+//    local_irq_save(flags);
+//    local_fiq_disable();
+#endif
     flush_cache_all();
     outer_flush_all();
     flush_tlb_all();
     isb();
     DDR_SAVE_SP(save_sp);
 
+	// Omegamoon >> Isn't this just a copy of ddr_delayus?
+	// Why isn't this properly documented. It's so vague!
+#ifdef OMEGAMOON_CHANGED
+	//dsb();
+	//ddr_delayus(1);
+	//ddr_print("*[1]*\n");
+
+    //for(i=0;i<(4*16);i++)	
+//#else
+#endif
     for(i=0;i<16;i++)
     {
         n=temp[1024*i];
         barrier();
     }
     n= pDDR_Reg->SCFG.d32;
+#ifdef OMEGAMOON_CHANGED
+	//dsb();
+	//ddr_delayus(1);
+	//ddr_print("*[2]*\n");
+#endif
     n= pPHY_Reg->RIDR;
     n= pCRU_Reg->CRU_PLL_CON[0][0];
     n= pPMU_Reg->PMU_WAKEUP_CFG[0];
     n= *(volatile uint32_t *)SysSrv_DdrConf;
+#ifdef OMEGAMOON_CHANGED
+	//dsb();
+	//ddr_delayus(1);
+	//ddr_print("*[3]*\n");
+#endif
 #if defined(CONFIG_ARCH_RK3066B) || defined(CONFIG_ARCH_RK3188)
     n= pGRF_Reg_RK3066B->GRF_SOC_STATUS0;
 #else
@@ -3115,7 +3173,15 @@ __sramfunc void ddr_adjust_config(uint32_t dram_type)
     dsb();
     
     //enter config state
+#ifdef OMEGAMOON_CHANGED
+	//ddr_delayus(1);
+#endif
     ddr_move_to_Config_state();
+#ifdef OMEGAMOON_CHANGED
+	//dsb();
+	//ddr_delayus(1);
+	//ddr_print("*[4]*\n");
+#endif
 
     //set data training address
     pPHY_Reg->DTAR = value;
@@ -3128,21 +3194,57 @@ __sramfunc void ddr_adjust_config(uint32_t dram_type)
 
     //enable the hardware low-power interface
     pDDR_Reg->SCFG.b.hw_low_power_en = 1;
+#ifdef OMEGAMOON_CHANGED
+	//dsb();
+	//ddr_delayus(1);
+	//ddr_print("Printing this long console text will give me some time to settle in...\n");
+#endif
 
     if(pDDR_Reg->PPCFG & 1)
     {
+#ifdef OMEGAMOON_CHANGED
+		//dsb();
+	    //ddr_delayus(1);
+#endif
         pPHY_Reg->DATX8[2].DXGCR &= ~(1);          //disable byte
         pPHY_Reg->DATX8[3].DXGCR &= ~(1);
         pPHY_Reg->DATX8[2].DXDLLCR |= 0x80000000;  //disable DLL
         pPHY_Reg->DATX8[3].DXDLLCR |= 0x80000000;
+#ifdef OMEGAMOON_CHANGED
+		//dsb();
+	    //ddr_delayus(1);
+        //ddr_print("*[7]*\n");
+#endif
     }
 
     ddr_update_odt();
+#ifdef OMEGAMOON_CHANGED
+    //dsb();
+	//ddr_delayus(1);
+	//ddr_print("*[8]*\n");
+#endif
 
     //enter access state
     ddr_move_to_Access_state();
 
+#ifdef OMEGAMOON_CHANGED
+    //dsb();
+	//ddr_delayus(1);
+	//ddr_print("*[9]*\n");
+	//ddr_print("*[ddr_ready]*\n");//"Omegamoon >> ddr_adjust_config called, just after DDR_RESTORE_SP()\n");
+	//ddr_delayus(2000000); // 2 secs
+#endif
     DDR_RESTORE_SP(save_sp);
+#ifdef OMEGAMOON_CHANGED
+//    local_fiq_enable();
+//    local_irq_restore(flags);
+#endif
+#ifdef OMEGAMOON_CHANGED
+    //dsb();
+	//ddr_delayus(1);
+	//ddr_print("*[ddr_end]*\n");//"Omegamoon >> ddr_adjust_config called, just after DDR_RESTORE_SP()\n");
+	//ddr_delayus(2000000); // 2 secs
+#endif
 }
 
 
@@ -3329,6 +3431,19 @@ uint32_t __sramfunc ddr_change_freq_sram(uint32_t nMHz)
     uint32_t regvalue = pCRU_Reg->CRU_PLL_CON[0][0];
     uint32_t freq;
 
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram called (%dMHz) \n", nMHz);
+#endif
+
+#ifdef OMEGAMOON_CHANGED_TRIED_BUT_DIDNT_WORK
+     // freq = (Fin/NR)*NF/OD
+     if((pCRU_Reg->CRU_MODE_CON&3) == 1)             // CPLL Normal mode
+         freq = 24 *((pCRU_Reg->CRU_PLL_CON[0][1]&0x1fff)+1)    // NF = 2*(CLKF+1)
+                /((((regvalue>>8)&0x3f)+1)           // NR = CLKR+1
+                *((regvalue&0xF)+1));             // OD = 2^CLKOD
+     else
+        freq = 24;
+#else
      // freq = (Fin/NR)*NF/OD
      if((pCRU_Reg->CRU_MODE_CON&3) == 1)             // CPLL Normal mode
          freq = 24 *((pCRU_Reg->CRU_PLL_CON[0][1]&0xffff)+1)    // NF = 2*(CLKF+1)
@@ -3336,13 +3451,19 @@ uint32_t __sramfunc ddr_change_freq_sram(uint32_t nMHz)
                 *((regvalue&0x3F)+1));             // OD = 2^CLKOD
      else
         freq = 24;
-        
+#endif // OMEGAMOON_CHANGED
     loops_per_us = LPJ_100MHZ*freq / 1000000;
 
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before set_pll \n");
+#endif
 #if defined(CONFIG_ARCH_RK3066B) || defined(CONFIG_ARCH_RK3188)
     ret=ddr_set_pll_rk3600b(nMHz,0);
 #else
     ret=ddr_set_pll(nMHz,0);
+#endif
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before ddr_get_parameter \n");
 #endif
     ddr_get_parameter(ret);
 
@@ -3353,6 +3474,9 @@ uint32_t __sramfunc ddr_change_freq_sram(uint32_t nMHz)
     outer_flush_all();
     flush_tlb_all();
     isb();
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before DDR_SAVE_SP \n");
+#endif
     DDR_SAVE_SP(save_sp);
     
     #if defined(CONFIG_ARCH_RK30)
@@ -3361,11 +3485,17 @@ uint32_t __sramfunc ddr_change_freq_sram(uint32_t nMHz)
     #define SRAM_SIZE       RK3188_IMEM_SIZE
     #endif
  
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before [1] \n");
+#endif
     for(i=0;i<SRAM_SIZE/4096;i++)
     {
     n=temp[1024*i];
     barrier();
     }
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before [2] \n");
+#endif
     n= pDDR_Reg->SCFG.d32;
     n= pPHY_Reg->RIDR;
     n= pCRU_Reg->CRU_PLL_CON[0][0];
@@ -3376,13 +3506,22 @@ uint32_t __sramfunc ddr_change_freq_sram(uint32_t nMHz)
 #else
     n= pGRF_Reg->GRF_SOC_STATUS0;
 #endif
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before [3] \n");
+#endif
     dsb();
 
     /** 2. ddr enter self-refresh mode or precharge power-down mode */
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before self_refresh \n");
+#endif
     idle_port();
     ddr_selfrefresh_enter(ret);
 
     /** 3. change frequence  */
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before frequency change \n");
+#endif
 #if defined(CONFIG_ARCH_RK3066B) || defined(CONFIG_ARCH_RK3188)
     ddr_set_pll_rk3600b(ret,1);
 #else
@@ -3390,6 +3529,9 @@ uint32_t __sramfunc ddr_change_freq_sram(uint32_t nMHz)
 #endif
     ddr_freq = ret;
     
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_change_freq_sram, just before exit \n");
+#endif
     /** 5. Issues a Mode Exit command   */
     ddr_selfrefresh_exit();
     deidle_port();
@@ -3500,7 +3642,12 @@ uint32_t ddr_change_freq(uint32_t nMHz)
     
     if(ddr_dpll_status == false)
     {
+#ifdef OMEGAMOON_CHANGED
+	// Skip unused local vars
+	ddr_print("Omegamoon >> ddr_change_freq\n");
+#else	
         uint32_t gpll_div_4,gpll_div_2,gpll_div_1;
+#endif
         if(((pCRU_Reg->CRU_MODE_CON>>12)&3) == 1)             // GPLL Normal mode
                 gpllvaluel= 24 *((pCRU_Reg->CRU_PLL_CON[3][1]&0xffff)+1)    // NF = 2*(CLKF+1)
                        /((((pCRU_Reg->CRU_PLL_CON[3][0]>>8)&0x3f)+1)           // NR = CLKR+1
@@ -3770,6 +3917,14 @@ int ddr_init(uint32_t dram_speed_bin, uint32_t freq)
     uint32_t gsr,dqstr;
 
     ddr_print("version 1.00 20130427 \n");
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_init(%d, %d) called...\n", dram_speed_bin, freq);	
+	ddr_print("Omegamoon >> loops_per_us is %u at this point\n", loops_per_us);
+	if (loops_per_us == 0) {
+		loops_per_us = clk_get_rate(clk_get(NULL, "ddr_pll"))/1000000;
+		ddr_print("Omegamoon >> Adjusted loops_per_us to %u\n", loops_per_us);
+	}
+#endif	
 #if defined(CONFIG_ARCH_RK3188)
     ddr_get_dpll_status();
 #endif
@@ -3811,15 +3966,35 @@ int ddr_init(uint32_t dram_speed_bin, uint32_t freq)
                                                                     ddr_get_row(), \
                                                                     ddr_get_cs(), \
                                                                     (ddr_get_cap()>>20));
+#ifdef OMEGAMOON_CHANGED
+	//ddr_print("Omegamoon >> ddr_init called, just before ddr_adjust_config\n");
+	//ddr_adjust_config(mem_type);
+	ddr_print("Omegamoon >> ddr_init called, **SKIPPING** ddr_adjust_config\n");
+#else
     ddr_adjust_config(mem_type);
+#endif
 
     if(ddr_dpll_status == true) {
+#ifdef OMEGAMOON_CHANGED
+		/*
+		ddr_print("Omegamoon >> ddr_init called, just before ddr_change_freq\n");
 	    if(freq != 0)
 		    value=ddr_change_freq(freq);
 	    else
 		    value=ddr_change_freq(clk_get_rate(clk_get(NULL, "ddr"))/1000000);
+		*/
+		ddr_print("Omegamoon >> ddr_init called, **SKIPPING** ddr_change_freq\n");
+#else
+	    if(freq != 0)
+		    value=ddr_change_freq(freq);
+	    else
+		    value=ddr_change_freq(clk_get_rate(clk_get(NULL, "ddr"))/1000000);
+#endif
     }
 
+#ifdef OMEGAMOON_CHANGED
+	ddr_print("Omegamoon >> ddr_init called, just before clk_set_rate\n");
+#endif
     clk_set_rate(clk_get(NULL, "ddr_pll"), 0);
     ddr_print("init success!!! freq=%luMHz\n", clk_get_rate(clk_get(NULL, "ddr_pll"))/1000000);
 

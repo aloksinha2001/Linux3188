@@ -3,3 +3,7 @@ obj-$(CONFIG_RGA_RK30) += rga/
 obj-$(CONFIG_RK_HDMI) += hdmi/
 obj-$(CONFIG_RK_LVDS) += lvds/
 obj-$(CONFIG_RK_TVENCODER) += tvencoder/
+ifneq ($(CONFIG_UMP),)
+obj-m += disp_ump.o
+EXTRA_CFLAGS += -Idrivers/gpu/ump/include
+endif
