@@ -44,7 +44,7 @@
 #define DRV_VERSION	"4.1.1"
 
 static char version[] =
-KERN_INFO "ASIX USB Ethernet Adapter:v" DRV_VERSION 
+KERN_INFO "ASIX USB Ethernet Adapter:v" DRV_VERSION
 	" " __TIME__ " " __DATE__ "\n"
 KERN_INFO "    http://www.asix.com.tw\n";
 
@@ -175,13 +175,13 @@ static void ax88772_status(struct usbnet *dev, struct urb *urb)
 	struct ax88172_int_data *event;
 	struct ax88772_data *ax772_data = (struct ax88772_data *)dev->priv;
 	int link;
-	
+
 	if (urb->actual_length < 8)
 		return;
 
 	event = urb->transfer_buffer;
 	link = event->link & 0x01;
-	
+
 	if (netif_carrier_ok(dev->net) != link) {
 		if (link) {
 			netif_carrier_on(dev->net);
@@ -196,7 +196,7 @@ static void ax88772_status(struct usbnet *dev, struct urb *urb)
 
 		devwarn(dev, "ax88772 - Link status is: %d", link);
 	}
-	
+
 	if (ax772_data->Event)
 		queue_work (ax772_data->ax_work, &ax772_data->check_link);
 }
@@ -232,7 +232,7 @@ static void ax88772a_status(struct usbnet *dev, struct urb *urb)
 
 		devwarn(dev, "ax88772a - Link status is: %d", link);
 	}
-	
+
 	if (ax772a_data->Event)
 		queue_work (ax772a_data->ax_work, &ax772a_data->check_link);
 }
@@ -264,10 +264,10 @@ static void ax88772b_status(struct usbnet *dev, struct urb *urb)
 		int no_cable = (event->link & AX_INT_CABOFF_UNPLUG) ? 1 : 0;
 
 		if (no_cable) {
-			if ((ax772b_data->psc & 
+			if ((ax772b_data->psc &
 			    (AX_SWRESET_IPPSL_0 | AX_SWRESET_IPPSL_1)) &&
 			     !ax772b_data->pw_enabled) {
-				/* 
+				/*
 				 * AX88772B already entered power saving state
 				 */
 				ax772b_data->pw_enabled = 1;
@@ -275,8 +275,8 @@ static void ax88772b_status(struct usbnet *dev, struct urb *urb)
 
 		} else {
 			/* AX88772B resumed from power saving state */
-			if (ax772b_data->pw_enabled || 
-				(jiffies > (ax772b_data->time_to_chk + 
+			if (ax772b_data->pw_enabled ||
+				(jiffies > (ax772b_data->time_to_chk +
 				 AX88772B_WATCHDOG))) {
 				if (ax772b_data->pw_enabled)
 					ax772b_data->pw_enabled = 0;
@@ -468,7 +468,7 @@ static int ax8817x_mdio_read(struct net_device *netdev, int phy_id, int loc)
 	return ret;
 }
 
-static int 
+static int
 ax8817x_swmii_mdio_read(struct net_device *netdev, int phy_id, int loc)
 {
 	struct usbnet *dev = netdev_priv(netdev);
@@ -494,7 +494,7 @@ static int ax8817x_mdio_read_le(struct net_device *netdev, int phy_id, int loc)
 	return le16_to_cpu(ax8817x_mdio_read(netdev,phy_id, loc));
 }
 
-static int 
+static int
 ax8817x_swmii_mdio_read_le(struct net_device *netdev, int phy_id, int loc)
 {
 	return le16_to_cpu(ax8817x_swmii_mdio_read(netdev,phy_id, loc));
@@ -519,7 +519,7 @@ ax8817x_mdio_write(struct net_device *netdev, int phy_id, int loc, int val)
 	kfree (res);
 }
 
-static void ax8817x_swmii_mdio_write(struct net_device *netdev, 
+static void ax8817x_swmii_mdio_write(struct net_device *netdev,
 			int phy_id, int loc, int val)
 {
 	struct usbnet *dev = netdev_priv(netdev);
@@ -1087,7 +1087,7 @@ static int ax88772_bind(struct usbnet *dev, struct usb_interface *intf)
 		if ((ret = ax8817x_write_cmd(dev, AX_CMD_SW_RESET,
 					AX_SWRESET_CLEAR,
 					0, 0, NULL)) < 0) {
-			deverr(dev, 
+			deverr(dev,
 			      "Failed to perform software reset: %d", ret);
 			goto out2;
 		}
@@ -1148,7 +1148,7 @@ static int ax88772_bind(struct usbnet *dev, struct usb_interface *intf)
 				ret);
 			goto out2;
 		}
-		
+
 		if ((ret = ax8817x_write_cmd(dev, AX_CMD_SW_RESET,
 					AX_SWRESET_PRL,
 					0, 0, NULL)) < 0) {
@@ -1159,7 +1159,7 @@ static int ax88772_bind(struct usbnet *dev, struct usb_interface *intf)
 		if ((ret = ax8817x_write_cmd(dev, AX_CMD_SW_RESET,
 			 		AX_SWRESET_IPRL | AX_SWRESET_PRL,
 					0, 0, NULL)) < 0) {
-			deverr(dev, 
+			deverr(dev,
 				"Set Internal/External PHY reset control: %d",
 				ret);
 			goto out2;
@@ -1267,7 +1267,7 @@ static int ax88772a_phy_powerup (struct usbnet *dev)
 
 	msleep(10);
 
-	
+
 	/* set the embedded Ethernet PHY in power-up state */
 	if ((ret = ax8817x_write_cmd(dev, AX_CMD_SW_RESET,
 			AX_SWRESET_IPRL, 0, 0, NULL)) < 0) {
@@ -1334,7 +1334,7 @@ static int ax88772a_bind(struct usbnet *dev, struct usb_interface *intf)
 #endif
 
 	/* Get the EEPROM data*/
-	if ((ret = ax8817x_read_cmd(dev, AX_CMD_READ_EEPROM, 
+	if ((ret = ax8817x_read_cmd(dev, AX_CMD_READ_EEPROM,
 			0x0017, 0, 2, (void *)&ax772a_data->EepromData)) < 0) {
 		deverr(dev, "read SROM address 17h failed: %d", ret);
 		goto out2;
@@ -1678,7 +1678,7 @@ static int ax88772b_bind(struct usbnet *dev, struct usb_interface *intf)
 	//for(i=0;i<ETH_ALEN;i++){
            //deverr(dev, "yyz________________read mac addr1: 0x%x", *((char *)buf+i));
 	//}
-	
+
 	#if 0
 	/* Set the MAC address */
 	if ((ret = ax8817x_write_cmd (dev, AX88772_CMD_WRITE_NODE_ID,
@@ -1854,7 +1854,7 @@ static void ax88772b_unbind(struct usbnet *dev, struct usb_interface *intf)
 	}
 }
 
-static int 
+static int
 ax88178_media_check (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 {
 	int fullduplex;
@@ -1871,7 +1871,7 @@ ax88178_media_check (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 				dev->mii.phy_id, MII_STAT1000);
 
 	if ((ax178dataptr->PhyMode == PHY_MODE_MARVELL) &&
-	    (ax178dataptr->LedMode == 1)) { 
+	    (ax178dataptr->LedMode == 1)) {
 		tempshort = ax8817x_mdio_read_le (dev->net,
 				dev->mii.phy_id, MARVELL_MANUAL_LED) & 0xfc0f;
 	}
@@ -1910,7 +1910,7 @@ ax88178_media_check (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 
 	if ((ax178dataptr->PhyMode == PHY_MODE_MARVELL) &&
 	    (ax178dataptr->LedMode == 1)) {
-		ax8817x_mdio_write_le (dev->net, 
+		ax8817x_mdio_write_le (dev->net,
 			dev->mii.phy_id, MARVELL_MANUAL_LED, tempshort);
 	}
 
@@ -1976,89 +1976,89 @@ static void Vitess_8601_Init (struct usbnet *dev, int State)
 		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x8794);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 18, 0x00f7);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 17, 0xbe36);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x879e);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0xa7a0);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
-				dev->mii.phy_id, 18, 
-				ax8817x_swmii_mdio_read_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
+				dev->mii.phy_id, 18,
+				ax8817x_swmii_mdio_read_le (dev->net,
 						dev->mii.phy_id, 18));
 
-		reg = (ax8817x_swmii_mdio_read_le (dev->net, 
+		reg = (ax8817x_swmii_mdio_read_le (dev->net,
 				dev->mii.phy_id, 17) & ~0x003f) | 0x0034;
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 17, reg);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x87a0);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 18, 0x003c);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 17, 0xf3cf);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x87a2);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 18, 0x003c);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 17, 0xf3cf);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x87a4);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 18, 0x003c);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 17, 0xd287);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x87a6);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0xa7a8);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
-				dev->mii.phy_id, 18, 
-				ax8817x_swmii_mdio_read_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
+				dev->mii.phy_id, 18,
+				ax8817x_swmii_mdio_read_le (dev->net,
 						dev->mii.phy_id, 18));
 
-		reg = (ax8817x_swmii_mdio_read_le (dev->net, 
+		reg = (ax8817x_swmii_mdio_read_le (dev->net,
 				dev->mii.phy_id, 17) & ~0x0fff) | 0x0125;
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 17, reg);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x87a8);
 
 		// Enable Smart Pre-emphasis
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0xa7fa);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
-				dev->mii.phy_id, 18, 
-				ax8817x_swmii_mdio_read_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
+				dev->mii.phy_id, 18,
+				ax8817x_swmii_mdio_read_le (dev->net,
 						dev->mii.phy_id, 18));
 
-		reg = (ax8817x_swmii_mdio_read_le (dev->net, 
+		reg = (ax8817x_swmii_mdio_read_le (dev->net,
 				dev->mii.phy_id, 17) & ~0x0008) | 0x0008;
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 17, reg);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x87fa);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 31, 0);
 
 		break;
 	}
 }
 
-static int 
+static int
 ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 {
 	int i;
@@ -2102,7 +2102,7 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 	if (!ax178dataptr->UseGpio0) {
 		i = 1000;
 		while (i--) {
-			PhyID1 = ax8817x_swmii_mdio_read_le (dev->net, 
+			PhyID1 = ax8817x_swmii_mdio_read_le (dev->net,
 						dev->mii.phy_id, GMII_PHY_OUI);
 			if ((PhyID1 == 0x000f) || (PhyID1 == 0x0141) ||
 			    (PhyID1 == 0x0282) || (PhyID1 == 0x004d) ||
@@ -2117,11 +2117,11 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 
 	ax178dataptr->UseRgmii = 0;
 	if (ax178dataptr->PhyMode == PHY_MODE_MARVELL) {
-		PhyReg = ax8817x_swmii_mdio_read_le(dev->net, 
+		PhyReg = ax8817x_swmii_mdio_read_le(dev->net,
 					dev->mii.phy_id, 27);
 		if (!(PhyReg & 4)) {
 			ax178dataptr->UseRgmii = 1;
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 20, 0x82);
 			ax178dataptr->MediaLink |= MEDIUM_ENABLE_125MHZ;
 		}
@@ -2138,9 +2138,9 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 			ax178dataptr->MediaLink |= MEDIUM_ENABLE_125MHZ;
 		}
 
-		for (i = 0; i < (sizeof(CICADA_FAMILY_HWINIT) / 
+		for (i = 0; i < (sizeof(CICADA_FAMILY_HWINIT) /
 			 	 sizeof(CICADA_FAMILY_HWINIT[0])); i++) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id,
 					CICADA_FAMILY_HWINIT[i].offset,
 					CICADA_FAMILY_HWINIT[i].value);
@@ -2156,9 +2156,9 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 			ax178dataptr->MediaLink |= MEDIUM_ENABLE_125MHZ;
 		}
 
-		for (i = 0; i < (sizeof(CICADA_V2_HWINIT) / 
+		for (i = 0; i < (sizeof(CICADA_V2_HWINIT) /
 				 sizeof(CICADA_V2_HWINIT[0])); i++) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, CICADA_V2_HWINIT[i].offset,
 				CICADA_V2_HWINIT[i].value);
 		}
@@ -2170,10 +2170,10 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 			ax178dataptr->MediaLink |= MEDIUM_ENABLE_125MHZ;
 		}
 
-		for (i = 0; i < (sizeof(CICADA_V2_HWINIT) / 
+		for (i = 0; i < (sizeof(CICADA_V2_HWINIT) /
 				 sizeof(CICADA_V2_HWINIT[0])); i++) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
-				dev->mii.phy_id, CICADA_V2_HWINIT[i].offset, 
+			ax8817x_swmii_mdio_write_le (dev->net,
+				dev->mii.phy_id, CICADA_V2_HWINIT[i].offset,
 				CICADA_V2_HWINIT[i].value);
 		}
 	} else if (ax178dataptr->PhyMode == PHY_MODE_RTL8211CL) {
@@ -2208,10 +2208,10 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 			i = 1000;
 			while (i--)
 			{
-				ax8817x_swmii_mdio_write_le (dev->net, 
+				ax8817x_swmii_mdio_write_le (dev->net,
 						dev->mii.phy_id, 21, 0x1001);
 
-				PhyReg = ax8817x_swmii_mdio_read_le (dev->net, 
+				PhyReg = ax8817x_swmii_mdio_read_le (dev->net,
 						dev->mii.phy_id, 21);
 				if ((PhyReg & 0xf00f) == 0x1001)
 					break;
@@ -2221,42 +2221,42 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 		}
 
 		if (ax178dataptr->LedMode == 4) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 28, 0x7417);
 		} else if (ax178dataptr->LedMode == 9) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 28, 0x7a10);
 		} else if (ax178dataptr->LedMode == 10) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 28, 0x7a13);
 		}
 
 		for (i = 0; i < (sizeof(AGERE_FAMILY_HWINIT) /
 				 sizeof(AGERE_FAMILY_HWINIT[0])); i++) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, AGERE_FAMILY_HWINIT[i].offset,
 				AGERE_FAMILY_HWINIT[i].value);
 		}
 	} else if (ax178dataptr->PhyMode == PHY_MODE_RTL8211CL) {
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 0x1f, 0x0005);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 0x0c, 0);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
-				dev->mii.phy_id, 0x01, 
-				(ax8817x_swmii_mdio_read_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
+				dev->mii.phy_id, 0x01,
+				(ax8817x_swmii_mdio_read_le (dev->net,
 					dev->mii.phy_id, 0x01) | 0x0080));
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 0x1f, 0);
 
 		if (ax178dataptr->LedMode == 12) {
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 0x1f, 0x0002);
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 0x1a, 0x00cb);
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 0x1f, 0);
 		}
 	} else if (ax178dataptr->PhyMode == PHY_MODE_VSC8601) {
@@ -2264,12 +2264,12 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 	}
 
 	// read phy register 0
-	PhyCtrl = ax8817x_swmii_mdio_read_le (dev->net, 
+	PhyCtrl = ax8817x_swmii_mdio_read_le (dev->net,
 				dev->mii.phy_id, GMII_PHY_CONTROL);
 	TempShort = PhyCtrl;
 	PhyCtrl &= ~(GMII_CONTROL_POWER_DOWN | GMII_CONTROL_ISOLATE);
 	if (PhyCtrl != TempShort) {
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, GMII_PHY_CONTROL, PhyCtrl);
 	}
 
@@ -2277,50 +2277,50 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 	if (ax178dataptr->PhyMode == PHY_MODE_MARVELL) {
 		if (ax178dataptr->LedMode == 1)	{
 
-			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net, 
+			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net,
 				dev->mii.phy_id, 24) & 0xf8ff) | (1 + 0x100);
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 24, PhyReg);
-			PhyReg = ax8817x_swmii_mdio_read_le (dev->net, 
+			PhyReg = ax8817x_swmii_mdio_read_le (dev->net,
 					dev->mii.phy_id, 25) & 0xfc0f;
 
 		} else if (ax178dataptr->LedMode == 2) {
 
-			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net, 
-					dev->mii.phy_id, 24) & 0xf886) | 
+			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net,
+					dev->mii.phy_id, 24) & 0xf886) |
 					(1 + 0x10 + 0x300);
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 24, PhyReg);
 
 		} else if (ax178dataptr->LedMode == 5) {
 
-			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net, 
-					dev->mii.phy_id, 24) & 0xf8be) | 
+			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net,
+					dev->mii.phy_id, 24) & 0xf8be) |
 					(1 + 0x40 + 0x300);
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 24, PhyReg);
 
 		} else if (ax178dataptr->LedMode == 7) {
 
-			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net, 
+			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net,
 						dev->mii.phy_id, 24) & 0xf8ff) |
 						(1 + 0x100);
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 24, PhyReg);
 
 		} else if (ax178dataptr->LedMode == 8) {
 
-			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net, 
-					dev->mii.phy_id, 24) & 0xf8be) | 
+			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net,
+					dev->mii.phy_id, 24) & 0xf8be) |
 					(1 + 0x40 + 0x100);
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 24, PhyReg);
 
 		} else if (ax178dataptr->LedMode == 11) {
 
-			PhyReg = ax8817x_swmii_mdio_read_le (dev->net, 
+			PhyReg = ax8817x_swmii_mdio_read_le (dev->net,
 					dev->mii.phy_id, 24) & 0x4106;
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 24, PhyReg);
 
 		}
@@ -2330,9 +2330,9 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 
 		if (ax178dataptr->LedMode == 3) {
 
-			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net, 
+			PhyReg = (ax8817x_swmii_mdio_read_le (dev->net,
 					dev->mii.phy_id, 27) & 0xFCFF) | 0x0100;
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 27, PhyReg);
 		}
 
@@ -2349,62 +2349,62 @@ ax88178_phy_init (struct usbnet *dev, struct ax88178_data *ax178dataptr)
 
 	PhyAuxCtrl = GMII_1000_AUX_CTRL_FD_CAPABLE;
 
-	ax8817x_swmii_mdio_write_le (dev->net, 
+	ax8817x_swmii_mdio_write_le (dev->net,
 			dev->mii.phy_id, GMII_PHY_ANAR, PhyAnar);
-	ax8817x_swmii_mdio_write_le (dev->net, 
+	ax8817x_swmii_mdio_write_le (dev->net,
 			dev->mii.phy_id, GMII_PHY_1000BT_CONTROL, PhyAuxCtrl);
 
 	if (ax178dataptr->PhyMode == PHY_MODE_VSC8601)
 	{
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 31, 0x52B5);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0xA7F8);
 
-		TempShort = ax8817x_swmii_mdio_read_le (dev->net, 
+		TempShort = ax8817x_swmii_mdio_read_le (dev->net,
 					dev->mii.phy_id, 17) & (~0x0018);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 17, TempShort);
 
-		TempShort = ax8817x_swmii_mdio_read_le (dev->net, 
+		TempShort = ax8817x_swmii_mdio_read_le (dev->net,
 					dev->mii.phy_id, 18);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 18, TempShort);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 16, 0x87F8);
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, 31, 0);
 	}
 
 	if (ax178dataptr->PhyMode == PHY_MODE_ATTANSIC_V0) {
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, GMII_PHY_CONTROL, 0x9000);
 
 	} else {
 		PhyCtrl &= ~GMII_CONTROL_LOOPBACK;
 		PhyCtrl |= (GMII_CONTROL_ENABLE_AUTO | GMII_CONTROL_START_AUTO);
 
-		ax8817x_swmii_mdio_write_le (dev->net, 
+		ax8817x_swmii_mdio_write_le (dev->net,
 				dev->mii.phy_id, GMII_PHY_CONTROL, PhyCtrl);
 	}
 
 	if (ax178dataptr->PhyMode == PHY_MODE_MARVELL) {
 		if (ax178dataptr->LedMode == 1)
-			ax8817x_swmii_mdio_write_le (dev->net, 
+			ax8817x_swmii_mdio_write_le (dev->net,
 					dev->mii.phy_id, 25, PhyReg);
 	}
 
 SkipPhySetting:
 
-	ax8817x_write_cmd (dev, AX_CMD_WRITE_MEDIUM_MODE, 
+	ax8817x_write_cmd (dev, AX_CMD_WRITE_MEDIUM_MODE,
 			ax178dataptr->MediaLink, 0, 0, NULL);
 
-	ax8817x_write_cmd (dev, AX_CMD_WRITE_IPG0, 
-			AX88772_IPG0_DEFAULT | (AX88772_IPG1_DEFAULT << 8), 
+	ax8817x_write_cmd (dev, AX_CMD_WRITE_IPG0,
+			AX88772_IPG0_DEFAULT | (AX88772_IPG1_DEFAULT << 8),
 			AX88772_IPG2_DEFAULT, 0, NULL);
 
 	msleep (1);
@@ -2454,7 +2454,7 @@ static int ax88178_bind(struct usbnet *dev, struct usb_interface *intf)
 		ax178dataptr->LedMode  = 0;
 		ax178dataptr->UseGpio0 = 1; //True
 	} else {
-		ax178dataptr->PhyMode = (u8)(ax178dataptr->EepromData & 
+		ax178dataptr->PhyMode = (u8)(ax178dataptr->EepromData &
 						EEPROMMASK);
 		ax178dataptr->LedMode = (u8)(ax178dataptr->EepromData >> 8);
 		if (ax178dataptr->LedMode == 6)	// for buffalo new (use gpio2)
@@ -2859,8 +2859,8 @@ static int ax88772b_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 			return 0;
 		}
 
-		if (skb->len - ((rx_hdr.len + 
-				 sizeof (struct ax88772b_rx_header) + 3) & 
+		if (skb->len - ((rx_hdr.len +
+				 sizeof (struct ax88772b_rx_header) + 3) &
 				 0xfffc) == 0) {
 			skb_pull(skb, sizeof (struct ax88772b_rx_header));
 			skb->len = rx_hdr.len;
@@ -2881,7 +2881,7 @@ static int ax88772b_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 		ax_skb = skb_clone(skb, GFP_ATOMIC);
 		if (ax_skb) {
 			ax_skb->len = rx_hdr.len;
-			ax_skb->data = skb->data + 
+			ax_skb->data = skb->data +
 				       sizeof (struct ax88772b_rx_header);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22)
@@ -2901,7 +2901,7 @@ static int ax88772b_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 			return 0;
 		}
 
-		skb_pull(skb, ((rx_hdr.len + 
+		skb_pull(skb, ((rx_hdr.len +
 				sizeof (struct ax88772b_rx_header) + 3)
 				& 0xfffc));
 	}
@@ -2968,7 +2968,7 @@ ax88772b_tx_fixup(struct usbnet *dev, struct sk_buff *skb, gfp_t flags)
 	return skb;
 }
 
-static const u8 ChkCntSel [6][3] = 
+static const u8 ChkCntSel [6][3] =
 {
 	{12, 23, 31},
 	{12, 31, 23},
@@ -2986,31 +2986,31 @@ static void ax88772_link_reset (void *data)
 #else
 static void ax88772_link_reset (struct work_struct *work)
 {
-	struct ax88772_data *ax772_data = container_of (work, 
+	struct ax88772_data *ax772_data = container_of (work,
 					struct ax88772_data, check_link);
 	struct usbnet *dev = ax772_data->dev;
 #endif
-	
+
 	if (ax772_data->Event == AX_SET_RX_CFG) {
 		u16 bmcr;
 		u16 mode;
-		
+
 		ax772_data->Event = AX_NOP;
-	
+
 		mode = AX88772_MEDIUM_DEFAULT;
 
-		bmcr = ax8817x_mdio_read_le(dev->net, 
+		bmcr = ax8817x_mdio_read_le(dev->net,
 				dev->mii.phy_id, MII_BMCR);
 		if (!(bmcr & BMCR_FULLDPLX))
 			mode &= ~AX88772_MEDIUM_FULL_DUPLEX;
 		if (!(bmcr & BMCR_SPEED100))
 			mode &= ~AX88772_MEDIUM_100MB;
 
-		ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE, 
+		ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE,
 			mode, 0, 0, NULL);
 		return;
 	}
-	
+
 	switch (ax772_data->Event) {
 	  case WAIT_AUTONEG_COMPLETE:
 		if (jiffies > (ax772_data->autoneg_start + 5 * HZ)) {
@@ -3040,12 +3040,12 @@ static void ax88772_link_reset (struct work_struct *work)
 			ax8817x_write_cmd(dev, AX_CMD_SW_RESET,
 				AX_SWRESET_IPRL, 0, 0, NULL);
 
-			ax8817x_mdio_write_le(dev->net, dev->mii.phy_id, 
+			ax8817x_mdio_write_le(dev->net, dev->mii.phy_id,
 				MII_ADVERTISE,
-				ADVERTISE_ALL | ADVERTISE_CSMA | 
+				ADVERTISE_ALL | ADVERTISE_CSMA |
 				ADVERTISE_PAUSE_CAP);
 			mii_nway_restart(&dev->mii);
-			
+
 			ax772_data->Event = PHY_POWER_UP;
 			ax772_data->TickToExpire = 47;
 		}
@@ -3070,29 +3070,29 @@ static void ax88772a_link_reset (void *data)
 #else
 static void ax88772a_link_reset (struct work_struct *work)
 {
-	struct ax88772a_data *ax772a_data = container_of (work, 
+	struct ax88772a_data *ax772a_data = container_of (work,
 					struct ax88772a_data, check_link);
 	struct usbnet *dev = ax772a_data->dev;
 #endif
 	int PowSave = (ax772a_data->EepromData >> 14);
 	u16 phy_reg;
-	
+
 	if (ax772a_data->Event == AX_SET_RX_CFG) {
 		u16 bmcr;
 		u16 mode;
 
 		ax772a_data->Event = AX_NOP;
-	
+
 		mode = AX88772_MEDIUM_DEFAULT;
 
-		bmcr = ax8817x_mdio_read_le(dev->net, 
+		bmcr = ax8817x_mdio_read_le(dev->net,
 				dev->mii.phy_id, MII_BMCR);
 		if (!(bmcr & BMCR_FULLDPLX))
 			mode &= ~AX88772_MEDIUM_FULL_DUPLEX;
 		if (!(bmcr & BMCR_SPEED100))
 			mode &= ~AX88772_MEDIUM_100MB;
 
-		ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE, 
+		ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE,
 			mode, 0, 0, NULL);
 		return;
 	}
@@ -3120,7 +3120,7 @@ static void ax88772a_link_reset (struct work_struct *work)
 			} else if (PowSave == 0x01) {
 			  ax772a_data->DlyIndex = (u8)(jiffies % 6);
 			  ax772a_data->DlySel = 0;
-			  ax772a_data->TickToExpire = 
+			  ax772a_data->TickToExpire =
 			  ChkCntSel[ax772a_data->DlyIndex][ax772a_data->DlySel];
 			}
 		}
@@ -3161,7 +3161,7 @@ static void ax88772a_link_reset (struct work_struct *work)
 			} else if (PowSave == 0x01) {
 			  ax772a_data->DlyIndex = (u8)(jiffies % 6);
 			  ax772a_data->DlySel = 0;
-			  ax772a_data->TickToExpire = 
+			  ax772a_data->TickToExpire =
 			  ChkCntSel[ax772a_data->DlyIndex][ax772a_data->DlySel];
 			}
 		}
@@ -3179,14 +3179,14 @@ static void ax88772a_link_reset (struct work_struct *work)
 
 		if (PowSave == 0x03){
 			  ax772a_data->TickToExpire = 47;
-			  
+
 		} else if (PowSave == 0x01) {
-		  
+
 		  if (++ax772a_data->DlySel >= 3) {
 		    ax772a_data->DlyIndex = (u8)(jiffies % 6);
 		    ax772a_data->DlySel = 0;
-		  }  
-		  ax772a_data->TickToExpire = 
+		  }
+		  ax772a_data->TickToExpire =
 			ChkCntSel[ax772a_data->DlyIndex][ax772a_data->DlySel];
 		}
 		break;
@@ -3205,7 +3205,7 @@ static void ax88772b_link_reset (void *data)
 #else
 static void ax88772b_link_reset (struct work_struct *work)
 {
-	struct ax88772b_data *ax772b_data = container_of (work, 
+	struct ax88772b_data *ax772b_data = container_of (work,
 					struct ax88772b_data, check_link);
 	struct usbnet *dev = ax772b_data->dev;
 #endif
@@ -3223,7 +3223,7 @@ static void ax88772b_link_reset (struct work_struct *work)
 		if (!(bmcr & BMCR_SPEED100))
 			mode &= ~AX88772_MEDIUM_100MB;
 
-		ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE, 
+		ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE,
 					mode, 0, 0, NULL);
 		break;
 	}
@@ -3259,7 +3259,7 @@ static int ax88178_set_media(struct usbnet *dev)
 	if (media < 0)
 		return media;
 
-	if ((ret = ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE, 
+	if ((ret = ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE,
 			media, 0, 0, NULL)) < 0) {
 		deverr(dev, "write mode medium reg failed: %d", ret);
 		return ret;
@@ -3394,6 +3394,39 @@ static const struct driver_info ax88772b_info = {
 	.tx_fixup = ax88772b_tx_fixup,
 };
 
+static int ax88772b_reset(struct usbnet *dev)
+{
+	int ret;
+
+	if ((ret = ax8817x_write_cmd(dev, AX_CMD_WRITE_MEDIUM_MODE,
+				AX88772_MEDIUM_DEFAULT, 0, 0, NULL)) < 0) {
+		deverr(dev, "Write medium mode register: %d", ret);
+	}
+	return ret;
+
+}
+
+/*
+ * USBLINK 20F9 "USB 2.0 LAN" USB ethernet adapter, typically found in
+ * no-name packaging.
+ * USB device strings are:
+ *   1: Manufacturer: USBLINK
+ *   2: Product: HG20F9 USB2.0
+ *   3: Serial: 000003
+ * Appears to be compatible with Asix 88772B.
+ */
+static const struct driver_info hg20f9_info = {
+	.description = "HG20F9 USB2.0 TO LAN 10M/100M",
+	.bind = ax88772b_bind,
+	.unbind = ax88772b_unbind,
+	.status = ax88772b_status,
+	.flags = FLAG_ETHER | FLAG_FRAMING_AX | FLAG_HW_IP_ALIGNMENT,
+	.rx_fixup = ax88772b_rx_fixup,
+	.tx_fixup = ax88772b_tx_fixup,
+	.stop = axusbnet_stop,
+	.reset = ax88772b_reset,
+};
+
 static const struct usb_device_id	products [] = {
 {
 	// 88178
@@ -3510,6 +3543,14 @@ static const struct usb_device_id	products [] = {
 	// ASIX AX88772B 10/100
         USB_DEVICE (0x0b95, 0x7E2B),
         .driver_info = (unsigned long) &ax88772b_info,
+}, {
+	 /*
+	  * USBLINK HG20F9 "USB 2.0 LAN 10M/100M"
+	  * Appears to have gazumped Linksys's manufacturer ID but
+	  * doesn't (yet) conflict with any known Linksys product.
+	  */
+	      USB_DEVICE (0x066b, 0x20f9),
+        .driver_info = (unsigned long) &hg20f9_info,
 },
 	{ },		// END
 };
