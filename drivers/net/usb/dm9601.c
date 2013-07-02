@@ -45,6 +45,12 @@
 #define DM_MCAST_ADDR	0x16	/* 8 bytes */
 #define DM_GPR_CTRL	0x1e
 #define DM_GPR_DATA	0x1f
+#define DM_CHIP_ID	0x2c
+#define DM_MODE_CTRL	0x91	/* only on dm9620 */
+
+/* chip id values */
+#define ID_DM9601	0
+#define ID_DM9620	1
 
 #define DM_MAX_MCAST	64
 #define DM_MCAST_SIZE	8
@@ -432,7 +438,8 @@ static const struct net_device_ops dm9601_netdev_ops = {
 	.ndo_set_mac_address	= dm9601_set_mac_address,
 };
 
-static int dm9601_bind(struct usbnet *dev, struct usb_interface *intf)
+static int dm9601_bind_common(
+		struct usbnet *dev, struct usb_interface *intf, int dev_type)
 {
 	int ret;
 	u8 mac[ETH_ALEN];
@@ -476,6 +483,18 @@ static int dm9601_bind(struct usbnet *dev, struct usb_interface *intf)
 		__dm9601_set_mac_address(dev);
 	}
 
+	/* put dm9620 devices in dm9601 mode */
+	if (dev_type == ID_DM9620) {
+		u8 mode;
+
+		if (dm_read_reg(dev, DM_MODE_CTRL, &mode) < 0) {
+			netdev_err(dev->net, "Error reading MODE_CTRL\n");
+			ret = -ENODEV;
+			goto out;
+		}
+		dm_write_reg(dev, DM_MODE_CTRL, mode & 0x7f);
+	}
+
 	/* power up phy */
 	dm_write_reg(dev, DM_GPR_CTRL, 1);
 	dm_write_reg(dev, DM_GPR_DATA, 0);
@@ -490,6 +509,16 @@ static int dm9601_bind(struct usbnet *dev, struct usb_interface *intf)
 
 out:
 	return ret;
+}
+
+static int dm9601_bind(struct usbnet *dev, struct usb_interface *intf)
+{
+	return dm9601_bind_common(dev, intf, ID_DM9601);
+}
+
+static int dm9620_bind(struct usbnet *dev, struct usb_interface *intf)
+{
+	return dm9601_bind_common(dev, intf, ID_DM9620);
 }
 
 static int dm9601_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
@@ -621,6 +650,17 @@ static const struct driver_info dm9601_info = {
 	.reset		= dm9601_link_reset,
 };
 
+static const struct driver_info dm9620_info = {
+	.description	= "Davicom DM9620 USB Ethernet",
+	.flags		= FLAG_ETHER | FLAG_LINK_INTR,
+	.bind		= dm9620_bind,
+	.rx_fixup	= dm9601_rx_fixup,
+	.tx_fixup	= dm9601_tx_fixup,
+	.status		= dm9601_status,
+	.link_reset	= dm9601_link_reset,
+	.reset		= dm9601_link_reset,
+};
+
 static const struct usb_device_id products[] = {
 	{
 	 USB_DEVICE(0x07aa, 0x9601),	/* Corega FEther USB-TXC */
@@ -658,13 +698,25 @@ static const struct usb_device_id products[] = {
 	 USB_DEVICE(0x0a46, 0x9000),	/* DM9000E */
 	 .driver_info = (unsigned long)&dm9601_info,
 	 },
+	{
+	 USB_DEVICE(0x0a46, 0x9620),	/* DM9620 USB to Fast Ethernet Adapter */
+	 .driver_info = (unsigned long)&dm9620_info,
+	},
+	{
+	 USB_DEVICE(0x0a46, 0x9621),	/* DM9621 USB to Fast Ethernet Adapter */
+	 .driver_info = (unsigned long)&dm9620_info,
+	 },
+	{
+	 USB_DEVICE(0x0a46, 0x9622),	/* DM9622 USB to Fast Ethernet Adapter */
+	 .driver_info = (unsigned long)&dm9620_info,
+	 },
 	{},			// END
 };
 
 MODULE_DEVICE_TABLE(usb, products);
 
 static struct usb_driver dm9601_driver = {
-	.name = "dm9601",
+	.name = "dm9601-962X",
 	.id_table = products,
 	.probe = usbnet_probe,
 	.disconnect = usbnet_disconnect,
