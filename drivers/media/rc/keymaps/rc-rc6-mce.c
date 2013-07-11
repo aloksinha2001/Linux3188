@@ -56,8 +56,8 @@ static struct rc_map_table rc6_mce[] = {
 	{ 0x800f0420, KEY_LEFT },
 	{ 0x800f0421, KEY_RIGHT },
 
-	{ 0x800f0422, KEY_OK },
-	{ 0x800f0423, KEY_EXIT },
+	{ 0x800f0422, KEY_SELECT },
+	{ 0x800f0423, KEY_ESC },
 	{ 0x800f0424, KEY_DVD },
 	{ 0x800f0425, KEY_TUNER },		/* LiveTV */
 	{ 0x800f0426, KEY_EPG },		/* Guide */
