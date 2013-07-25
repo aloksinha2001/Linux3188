@@ -1,1 +1,0 @@
-../mytools/4.8-mkalokimg.sh
