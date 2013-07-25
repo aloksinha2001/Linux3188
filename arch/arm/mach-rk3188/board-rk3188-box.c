@@ -1464,8 +1464,8 @@ static struct pmu_info  act8846_dcdc_info[] = {
 	},
 	{
 		.name          = "act_dcdc4",   //vccio
-		.min_uv          = 3300000,
-		.max_uv         = 3300000,
+		.min_uv          = 3000000,
+		.max_uv         = 3000000,
 		#ifdef CONFIG_ACT8846_SUPPORT_RESET
 		.suspend_vol  =  3000000,
 		#else
@@ -1502,8 +1502,8 @@ static  struct pmu_info  act8846_ldo_info[] = {
 	},
 	{
 		.name          = "act_ldo6",   //vcc_jetta
-		.min_uv          = 1800000,
-		.max_uv         = 1800000,
+		.min_uv          = 3300000,
+		.max_uv         = 3300000,
 	},
 	{
 		.name          = "act_ldo7",   //vcc18
