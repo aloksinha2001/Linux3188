@@ -9,6 +9,12 @@
 #include <linux/i2c.h>
 #include "it66121.h"
 
+//yxg<<++
+#include <linux/wakelock.h>
+static struct wake_lock hdmi_wake_lock;
+#include <mach/board.h>
+//yxg ++>>
+
 static struct it66121 *it66121 = NULL;
 
 BOOL i2c_write_byte( BYTE address,BYTE offset,BYTE byteno,BYTE *p_data,BYTE device )
@@ -148,6 +154,12 @@ static int it66121_i2c_probe(struct i2c_client *client,const struct i2c_device_i
 		it66121_irq_work_func(NULL);
 //		queue_delayed_work(sii902x->workqueue, &sii902x->delay_work, 0);
 	}
+
+	//yxg <<++
+	wake_lock_init(&hdmi_wake_lock, WAKE_LOCK_SUSPEND, "hdmi_lock");
+	wake_lock(&hdmi_wake_lock); 
+	printk("yxg--------hdmi_wake_lock\n");
+//yxg ++>>
 	printk(KERN_INFO "IT66121 probe success.");	
 	return 0;
 	

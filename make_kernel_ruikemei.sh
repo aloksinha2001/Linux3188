@@ -18,8 +18,9 @@ cp $KEHU_FILE/logo_linux_clut224.ppm drivers/video/logo/
 echo "***********************"
 echo "make kernel.img"
 echo "***********************"
-make kernel.img -j4
-sz kernel.img
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- kernel.img -j8
+# make kernel.img -j8
+#sz kernel.img
 
 echo "***********************"
 echo "return origin files"

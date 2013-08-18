@@ -296,7 +296,20 @@ static int rfkill_rk_set_power(void *data, bool blocked)
 
 	if (false == blocked) { 
         rfkill_rk_sleep_bt(BT_WAKEUP); // ensure bt is wakeup
-        
+
+#if 0//defined(CONFIG_AP6210)
+        if (gpio_is_valid(rts->io))
+        {
+            if (rts->iomux.name)
+            {
+                rk_mux_api_set(rts->iomux.name, rts->iomux.fgpio);
+            }
+            DBG("ENABLE UART_RTS\n");
+            gpio_direction_output(rts->io, rts->enable);
+            msleep(20);
+        }
+#endif
+
 		if (gpio_is_valid(poweron->io))
         {
 			gpio_direction_output(poweron->io, poweron->enable);
@@ -317,12 +330,24 @@ static int rfkill_rk_set_power(void *data, bool blocked)
             {
                 rk_mux_api_set(rts->iomux.name, rts->iomux.fgpio);
             }
-            LOG("ENABLE UART_RTS\n");
+            DBG("ENABLE UART_RTS\n");
             gpio_direction_output(rts->io, rts->enable);
 
             msleep(100);
 
-            LOG("DISABLE UART_RTS\n");
+            DBG("DISABLE UART_RTS\n");
+            gpio_direction_output(rts->io, !rts->enable);
+            if (rts->iomux.name)
+            {
+                rk_mux_api_set(rts->iomux.name, rts->iomux.fmux);
+            }
+        }
+#endif
+
+#if 0//defined(CONFIG_AP6210)
+        if (gpio_is_valid(rts->io))
+        {
+            DBG("DISABLE UART_RTS\n");
             gpio_direction_output(rts->io, !rts->enable);
             if (rts->iomux.name)
             {

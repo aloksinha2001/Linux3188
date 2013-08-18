@@ -1,0 +1,24 @@
+echo "Compile Linux kernel and modules"
+cd /root/rk3188/t428/3.0.36-linuxium-test+
+cp /root/rk3188/t428/3.0.36-linuxium-test+/.config /root/rk3188/t428/t428-3.0.36-linuxium-test+-.config
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- mrproper
+cp /root/rk3188/t428/t428-3.0.36-linuxium-test+-.config /root/rk3188/t428/3.0.36-linuxium-test+/.config
+rm -rf /root/rk3188/t428/3.0.36-linuxium-test+/output
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j2
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j2 INSTALL_MOD_PATH=output modules
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j2 INSTALL_MOD_PATH=output modules_install
+
+echo "Generate t428-3.0.36-linuxium-test+-kernel.img"
+cd /root/rk3188/t428
+tools/mkbootimg --kernel 3.0.36-linuxium-test+/arch/arm/boot/Image --ramdisk initramfs/fakeramdisk.gz --base 60400000 --pagesize 16384 --ramdiskaddr 62000000 -o t428-3.0.36-linuxium-test+-kernel.img
+
+echo "Copy t428-3.0.36-linuxium-test+-kernel.img to Windows"
+echo "mount WINDOWS sdcard
+cd /root/rk3188/t428
+cp t428-3.0.36-linuxium-test+-kernel.img /media/WIN-SDCARD
+umount /media/WIN-SDCARD
+
+echo "Copy modules to rootfs"
+echo "mount ROOTFS sdcard (linuxroot)"
+cp -a /root/rk3188/t428/3.0.36-linuxium-test+/output/lib/modules/3.0.36-linuxium-test+ /media/linuxroot/lib/modules
+umount /media/linuxroot

@@ -361,7 +361,7 @@ void InitHDMITX()
 {
 
     hdmitx_LoadRegSetting(HDMITX_Init_Table);
-    HDMITX_WriteI2C_Byte(REG_TX_PLL_CTRL,0xff);
+    HDMITX_WriteI2C_Byte(REG_TX_PLL_CTRL,0x00);//yxg	0xff);
     hdmiTxDev[0].bIntPOL = (hdmiTxDev[0].bIntType&B_TX_INTPOL_ACTH)?TRUE:FALSE ;
 
     // Avoid power loading in un play status.
