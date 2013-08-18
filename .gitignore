@@ -9,6 +9,11 @@
 #
 # Normal rules
 #
+4.7*
+4.8*
+Image*
+alok*
+kernel.img
 .*
 *.o
 *.o.*

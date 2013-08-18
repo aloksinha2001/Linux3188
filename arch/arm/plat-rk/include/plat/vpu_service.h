@@ -42,7 +42,7 @@
 #if defined(CONFIG_ARCH_RK29)
 // client type: encoder only:  96 registers, size 384B for rk29
 #define VPU_REG_NUM_ENC                     (96)
-#elif defined(CONFIG_ARCH_RK30)
+#elif defined(CONFIG_ARCH_RK30) || defined(CONFIG_ARCH_RK3188)
 // client type: encoder only: 164 registers, size 384B for rk30
 #define VPU_REG_NUM_ENC                     (164)
 #endif
