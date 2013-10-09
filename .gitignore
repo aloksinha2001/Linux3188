@@ -14,6 +14,8 @@
 Image*
 alok*
 kernel.img
+config
+output
 .*
 *.o
 *.o.*

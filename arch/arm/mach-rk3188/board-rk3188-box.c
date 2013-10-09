@@ -53,11 +53,6 @@
 #if defined(CONFIG_MFD_RK610)
 #include <linux/mfd/rk610_core.h>
 #endif
-
-#if defined(CONFIG_RK_HDMI)
-	#include "../../../drivers/video/rockchip/hdmi/rk_hdmi.h"
-#endif
-
 //$_rbox_$_modify_$ zhengyang modified for box
 #include <linux/display-sys.h>
 #include <linux/rk_fb.h>
@@ -88,11 +83,6 @@
 #include "../mach-rk30/board-rk31-vmac.c"
 #endif
 
-
-
-#define GALLAND_CHANGED 1
-
-
 static struct rk29_keys_button key_button[] = {
 	{
 		.desc	= "play",
@@ -100,13 +90,6 @@ static struct rk29_keys_button key_button[] = {
 		.gpio	= RK30_PIN0_PA4, 
 		.active_low = PRESS_LEV_LOW,
 		.wakeup	= 1,
-	},
-	{
-		.desc	= "esc",
-		.code	= KEY_BACK,
-		.adc_value	= 1,
-		.gpio = INVALID_GPIO,
-		.active_low = PRESS_LEV_LOW,
 	},
 };
 struct rk29_keys_platform_data rk29_keys_pdata = {
@@ -408,7 +391,7 @@ static struct sensor_platform_data cm3217_info = {
 #define LCD_CS_PIN         INVALID_GPIO
 #define LCD_CS_VALUE       GPIO_HIGH
 
-#define LCD_EN_PIN         INVALID_GPIO //Galland RK30_PIN0_PB0
+#define LCD_EN_PIN         RK30_PIN0_PB0
 #define LCD_EN_VALUE       GPIO_LOW
 
 static int rk_fb_io_init(struct rk29_fb_setting_info *fb_setting)
@@ -471,41 +454,25 @@ static int rk_fb_io_enable(void)
 	return 0;
 }
 
-#if defined(GALLAND_CHANGED) && (defined(CONFIG_LCDC0_RK3188) && !defined(CONFIG_LCDC1_RK3188))
+#if defined(CONFIG_LCDC0_RK3188)
+struct rk29fb_info lcdc0_screen_info = {
+	.prop           = EXTEND,       //extend display device
+       .lcd_info  = NULL,
+       .set_screen_info = set_lcd_info,
 
-   struct rk29fb_info lcdc0_screen_info = {
-      .prop	   = PRMRY,		//primary display device
-      .io_init   = rk_fb_io_init,
-      .io_disable = rk_fb_io_disable,
-      .io_enable = rk_fb_io_enable,
-      .set_screen_info = set_lcd_info,
-      
-   };
+};
+#endif
 
-#else
-
-   #if defined(CONFIG_LCDC0_RK3188)
-   struct rk29fb_info lcdc0_screen_info = {
-      .prop           = EXTEND,       //extend display device
-          .lcd_info  = NULL,
-          .set_screen_info = set_lcd_info,
-
-   };
-   #endif
-
-   #if defined(CONFIG_LCDC1_RK3188)
-   struct rk29fb_info lcdc1_screen_info = {
-      .prop	   = PRMRY,		//primary display device
-      .io_init   = rk_fb_io_init,
-      .io_disable = rk_fb_io_disable,
-      .io_enable = rk_fb_io_enable,
-      .set_screen_info = set_lcd_info,
-      
-   };
-   #endif
-
-#endif //GALLAND_CHANGED
-
+#if defined(CONFIG_LCDC1_RK3188)
+struct rk29fb_info lcdc1_screen_info = {
+	.prop	   = PRMRY,		//primary display device
+	.io_init   = rk_fb_io_init,
+	.io_disable = rk_fb_io_disable,
+	.io_enable = rk_fb_io_enable,
+	.set_screen_info = set_lcd_info,
+	
+};
+#endif
 
 static struct resource resource_fb[] = {
 	[0] = {
@@ -662,7 +629,7 @@ static struct rk_hdmi_platform_data rk_hdmi_pdata = {
 };
 #endif
 #ifdef CONFIG_ION
-#define ION_RESERVE_SIZE        (80 * SZ_1M)
+#define ION_RESERVE_SIZE        (120 * SZ_1M)
 static struct ion_platform_data rk30_ion_pdata = {
 	.nr = 1,
 	.heaps = {
@@ -1302,18 +1269,6 @@ static int rk_platform_add_display_devices(void)
 	return 0;
 	
 }
-
-#if defined(GALLAND_CHANGED) && (defined(CONFIG_LCDC0_RK3188) && !defined(CONFIG_LCDC1_RK3188))
-
-static struct rkdisplay_platform_data hdmi_data = {
-	.property 		= DISPLAY_MAIN,
-	.video_source 	= DISPLAY_SOURCE_LCDC0,
-	.io_pwr_pin 	= INVALID_GPIO,
-	.io_reset_pin 	= RK30_PIN3_PB2,
-};
-
-#else
-
 //$_rbox_$_modify_$ zhengyang modified for box
 static struct rkdisplay_platform_data hdmi_data = {
 	.property 		= DISPLAY_MAIN,
@@ -1322,7 +1277,7 @@ static struct rkdisplay_platform_data hdmi_data = {
 	.io_reset_pin 	= RK30_PIN3_PB2,
 };
 
-#if defined(CONFIG_RK1000_TVOUT)
+#if defined(CONFIG_RK1000_TVOUT) || defined(CONFIG_MFD_RK1000)
 static struct rkdisplay_platform_data tv_data = {
 	.property 		= DISPLAY_AUX,
 	.video_source 	= DISPLAY_SOURCE_LCDC0,
@@ -1332,9 +1287,6 @@ static struct rkdisplay_platform_data tv_data = {
 };
 #endif
 //$_rbox_$_modify_$ zhengyang modified end
-
-#endif
-
 
 // i2c
 #ifdef CONFIG_I2C0_RK30
@@ -1464,8 +1416,8 @@ static struct pmu_info  act8846_dcdc_info[] = {
 	},
 	{
 		.name          = "act_dcdc4",   //vccio
-		.min_uv          = 3000000,
-		.max_uv         = 3000000,
+		.min_uv          = 3300000,
+		.max_uv         = 3300000,
 		#ifdef CONFIG_ACT8846_SUPPORT_RESET
 		.suspend_vol  =  3000000,
 		#else
@@ -2003,7 +1955,7 @@ static void rk30_pm_power_off(void)
 
 static void __init machine_rk30_board_init(void)
 {
-	//avs_init(); //Galland: dvfs?
+	//avs_init();
 	gpio_request(POWER_ON_PIN, "poweronpin");
 	gpio_direction_output(POWER_ON_PIN, GPIO_HIGH);
 	
