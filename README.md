@@ -1,7 +1,10 @@
 Linux3188
 
-=========
+Finally a complete kernel build.
 
+Build tested on MK802IV, config file updated
+
+========
 Linux Source - RK3188 - PicUntu
 
 We are making progress.
