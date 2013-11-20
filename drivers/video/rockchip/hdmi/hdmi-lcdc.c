@@ -1,5 +1,12 @@
 #include "rk_hdmi.h"
 
+#ifdef CONFIG_HDMI_LCDC_EDID_DEBUG
+#define hdmi_lcdc_debug(fmt, ...) \
+        printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+#else
+#define hdmi_lcdc_debug(fmt, ...)
+#endif
+
 #define LCD_ACLK		800000000
 
 static const struct hdmi_video_timing hdmi_mode [] = {
@@ -92,7 +99,7 @@ static int hdmi_set_info(struct rk29fb_screen *screen, unsigned int vic)
 static int hdmi_find_best_mode(struct hdmi* hdmi, int vic)
 {
 	struct list_head *pos, *head = &hdmi->edid.modelist;
-	struct display_modelist *modelist;
+	struct display_modelist *modelist = NULL;
 	int found = 0;
 	
 	if(vic)
@@ -131,7 +138,9 @@ int hdmi_set_lcdc(struct hdmi *hdmi)
 //	printk("%s selected vic is %d\n", __FUNCTION__, hdmi->vic);
 	if(hdmi->vic == 0)
 		hdmi->vic = HDMI_VIDEO_DEFAULT_MODE;
-				
+
+	hdmi_lcdc_debug( "[HDMI-LCDC] Used CEA-Mode (hdmi->vic) = %d \n", hdmi->vic);
+
 	rc = hdmi_set_info(&screen, hdmi->vic);
 
 	if(rc == 0) {		
@@ -269,22 +278,32 @@ static int hdmi_add_videomode(const struct fb_videomode *mode, struct list_head 
 	return 0;
 }
 
-//#ifdef DEBUG
+#ifdef CONFIG_HDMI_LCDC_EDID_DEBUG
+static void show_info_modelist_modes(struct list_head *head)
+{
+	//*head = &hdmi->edid.modelist
+
+	struct list_head *pos;
+	struct display_modelist *modelist_entry;
+	struct fb_videomode *m;
+		
+	list_for_each(pos, head) {
+		modelist_entry = list_entry(pos, struct display_modelist, list);
+		m = &modelist_entry->mode;
+		printk( "	%s, CEA: %d.\n", m->name, modelist_entry->vic);
+	}
+}
+
 static void hdmi_show_sink_info(struct hdmi *hdmi)
 {
-	struct list_head *pos, *head = &hdmi->edid.modelist;
-	struct display_modelist *modelist;
-	struct fb_videomode *m;
 	int i;
 	struct hdmi_audio *audio;
 
-	printk( "******** Show Sink Info ********\n");
+	printk( "****************************************\n");
+	printk( "Show Sink Info (HDMI-LCDC)         start\n");
+	printk( "****************************************\n");
 	printk( "Support video mode: \n");
-	list_for_each(pos, head) {
-		modelist = list_entry(pos, struct display_modelist, list);
-		m = &modelist->mode;
-		printk( "	%s.\n", m->name);
-	}
+	show_info_modelist_modes(&hdmi->edid.modelist);
 	
 	for(i = 0; i < hdmi->edid.audio_num; i++)
 	{
@@ -362,9 +381,9 @@ static void hdmi_show_sink_info(struct hdmi *hdmi)
 		if(audio->rate & HDMI_AUDIO_WORD_LENGTH_24bit)
 			printk( "	24bit\n");
 	}
-	printk( "******** Show Sink Info ********\n");
+	printk( "*****************end*******************\n");
 }
-//#endif
+#endif
 
 static const unsigned int double_aspect_vic[] = {3, 7, 9, 11, 13, 15, 18, 22, 24, 26, 28, 30, 36, 38, 43, 45, 49, 51, 53, 55, 57, 59};
 static void hdmi_sort_modelist(struct hdmi_edid *edid)
@@ -381,12 +400,12 @@ static void hdmi_sort_modelist(struct hdmi_edid *edid)
 //		printk("%s vic %d\n", __FUNCTION__, modelist->vic);
 		for(i = 0; i < ARRAY_SIZE(hdmi_mode); i++) {
 	    	for(j = 0; j < ARRAY_SIZE(double_aspect_vic); j++) {
-				if(modelist->vic == double_aspect_vic[j]) {	
+				if(modelist->vic == double_aspect_vic[j]) {
 					modelist->vic--;
 					break;
 				}
 			}
-	    	
+
 	    	if (modelist->vic == hdmi_mode[i].vic) {
 				modelist->mode = hdmi_mode[i].mode;
 				compare = 1;
@@ -479,10 +498,10 @@ int hdmi_ouputmode_select(struct hdmi *hdmi, int edid_ok)
 	}
 	else
 		hdmi_sort_modelist(&hdmi->edid);
-		
-//	#ifdef HDMI_DEBUG
+	
+	#ifdef CONFIG_HDMI_LCDC_EDID_DEBUG
 	hdmi_show_sink_info(hdmi);
-//	#endif
+	#endif
 	return HDMI_ERROR_SUCESS;
 }
 
@@ -557,4 +576,12 @@ void hdmi_init_modelist(struct hdmi *hdmi)
 	for(i = 0; i < ARRAY_SIZE(hdmi_mode); i++) {
 		hdmi_add_videomode(&(hdmi_mode[i].mode), head);
 	}
+	#ifdef CONFIG_HDMI_LCDC_EDID_DEBUG
+	printk( "****************************************\n");
+	printk( "Show Software Info (HDMI-LCDC)     start\n");
+	printk( "****************************************\n");
+	printk( "Prepared video modes: \n");
+	show_info_modelist_modes(head);
+	printk( "*****************end*******************\n");
+	#endif
 }

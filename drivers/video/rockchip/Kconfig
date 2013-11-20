@@ -7,6 +7,56 @@ menuconfig FB_ROCKCHIP
         ---help---
           Framebuffer driver for rockchip based platform
 
+config EDID_BASICTOSVD_GEN2THOMAS_FIX
+	bool     "EDID fix by gen2thomas to make all resolutions available"
+  help
+   This fix ensure that all resolutions from basic EDID block of your display 
+   are also available for your device. In case the extended EDID block of your 
+   display has some SVD's (short video descriptor) the basic EDID block 
+   informations will be lost without this fix.
+   
+   Background: Some monitors EDID (f.e. acer P225HQL) have no duplicated entry in basic and
+   extended block. F.e. the 1920x1080p resolution is only described in the basic EDID block 
+   and some other resolutions are available as SVD of the extended EDID block.
+   Therefore the 1920x1080p resolution (or possible others) will be lost although the monitor
+   would support it.
+
+config BASIC_EDID_DEBUG
+	bool "EDID debug output of basic block"
+	default n
+	help
+	  Say Y here if you want the EDID driver to output all sorts
+	  of debugging information to provide to the maintainer when
+	  something goes wrong.
+	  
+	  Set this to Y in case you need more informations about parsing the 
+	  basic EDID block (first 128 bytes). Also some informations of the
+	  not already completed implementation of (extended) E-EDID block 
+	  could be displayed.
+
+config HDMI_EDID_DEBUG
+	bool "HDMI EDID debug output"
+	default n
+	help
+	  Say Y here if you want the HDMI-EDID driver part to output all sorts
+	  of debugging information to provide to the maintainer when
+	  something goes wrong.
+	  
+	  Set this to Y in case you need more informations about the 
+	  (extended) E-EDID block parsing. Also the binary content of the basic buffer
+	  will be shown.
+	  
+config HDMI_LCDC_EDID_DEBUG
+	bool "HDMI LCDC EDID debug output"
+	default n
+	help
+	  Say Y here if you want the HDMI-LCDC-EDID driver part to output all sorts
+	  of debugging information to provide to the maintainer when
+	  something goes wrong.
+	  
+	  Set this to Y will cause more informations about the using of
+	  parsed EDID for your device. "Show Sink Info" is part of this output. 
+
 config FB_MIRRORING
 	bool     "Mirroring support"
 	depends on FB_ROCKCHIP
