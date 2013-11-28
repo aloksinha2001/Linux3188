@@ -20,6 +20,18 @@ config EDID_BASICTOSVD_GEN2THOMAS_FIX
    and some other resolutions are available as SVD of the extended EDID block.
    Therefore the 1920x1080p resolution (or possible others) will be lost although the monitor
    would support it.
+   
+config EDID_FINDBESTMODE_GEN2THOMAS_FIX
+	bool     "EDID fix by gen2thomas to find best mode also for not sorted lists"
+  help
+   This patch get the best mode from the given list also in the case that the list is not sorted 
+   correctly and also for the case that the highest resolution not match the given ratio of the
+   screen. In that case the best resolution for the matching ratio to the screen is used. Also 
+   for two equivalent resolutions the mode with the higher frequency is found and used. 
+   
+   Background: The original method only differentiate between two cases. But the real world know
+   nine cases (three for x, three for y and the combinations). The patched algorithm know and match 
+   all nine cases. 
 
 config BASIC_EDID_DEBUG
 	bool "EDID debug output of basic block"

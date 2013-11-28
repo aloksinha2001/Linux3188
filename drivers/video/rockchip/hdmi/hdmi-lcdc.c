@@ -279,7 +279,7 @@ static int hdmi_add_videomode(const struct fb_videomode *mode, struct list_head 
 }
 
 #ifdef CONFIG_HDMI_LCDC_EDID_DEBUG
-static void show_info_modelist_modes(struct list_head *head)
+static void __show_info_modelist_modes(struct list_head *head)
 {
 	//*head = &hdmi->edid.modelist
 
@@ -303,7 +303,7 @@ static void hdmi_show_sink_info(struct hdmi *hdmi)
 	printk( "Show Sink Info (HDMI-LCDC)         start\n");
 	printk( "****************************************\n");
 	printk( "Support video mode: \n");
-	show_info_modelist_modes(&hdmi->edid.modelist);
+	__show_info_modelist_modes(&hdmi->edid.modelist);
 	
 	for(i = 0; i < hdmi->edid.audio_num; i++)
 	{
@@ -433,6 +433,90 @@ static void hdmi_sort_modelist(struct hdmi_edid *edid)
 	edid->modelist.prev->next = &edid->modelist;
 }
 
+#ifdef CONFIG_EDID_FINDBESTMODE_GEN2THOMAS_FIX //EDID fix by gen2thomas to find best mode also for not sorted lists
+// calculate the ratio of a given (screen) dimension
+unsigned int __get_ratio(int  max_x, int  max_y)
+{
+	/* Maximum vertical size (cm) */
+	/* Maximum horizontal size (cm) */
+	//5:4=1.25(125), 4:3=1.33(133), 16:10=1.6(160), 16:9=1.78(178)
+	int ratio = 0, level;
+
+	ratio = (max_x * 100)/max_y;
+
+	level = HDMI_05_BY_04 + ((HDMI_04_BY_03 - HDMI_05_BY_04)/2);
+	if (ratio < level) return HDMI_05_BY_04;
+
+	level = HDMI_04_BY_03 + ((HDMI_16_BY_10 - HDMI_04_BY_03)/2);
+	if (ratio < level) return HDMI_04_BY_03;
+
+	level = HDMI_16_BY_10 + ((HDMI_16_BY_09 - HDMI_16_BY_10)/2);
+	if (ratio < level) return HDMI_16_BY_10;
+
+	return HDMI_16_BY_09;
+}
+
+// find the best entry in modedb matching the given mode
+struct fb_videomode* __find_best_matching_mode(struct fb_monspecs *specs)
+{
+	struct fb_videomode *modedb;
+	unsigned int ratio_from_specs; //g2t: 5.4=1.25(125), 4:3=1.33(133), 16:10=1.6(160), 16:9=1.78(178)
+	char ratio_found;
+	int i;
+
+	ratio_from_specs = __get_ratio(specs->max_x, specs->max_y);
+	hdmi_lcdc_debug("[HDMI-LCDC] check mode with ratio %d [1/100]\n", ratio_from_specs);
+	ratio_found = 0;
+	modedb = &specs->modedb[0];
+
+	for (i = 0; i < specs->modedb_len; i++) {
+		hdmi_lcdc_debug("[HDMI-LCDC] check mode %dx%d@%d\n", specs->modedb[i].xres, specs->modedb[i].yres, specs->modedb[i].refresh);
+		if(specs->modedb[i].xres > modedb->xres) { // case 1
+			if(specs->modedb[i].yres >= modedb->yres) {
+				// this is always an better resolution
+				modedb = &specs->modedb[i];
+				ratio_found = __get_ratio(specs->modedb[i].xres, specs->modedb[i].yres) == ratio_from_specs;
+			}
+			else {
+				// take the resolution only in case the old one has the wrong ratio and the new the right one
+				if(ratio_found == 0)
+					if(__get_ratio(specs->modedb[i].xres, specs->modedb[i].yres) == ratio_from_specs)	{
+						ratio_found = 1;
+						modedb = &specs->modedb[i];
+					}
+			}
+		} // case 1
+		else {
+			if(specs->modedb[i].xres == modedb->xres) { // case 2
+				if(specs->modedb[i].yres > modedb->yres) {
+					modedb = &specs->modedb[i];
+					ratio_found = __get_ratio(specs->modedb[i].xres, specs->modedb[i].yres) == ratio_from_specs;
+				}
+				else {
+					if(specs->modedb[i].yres == modedb->yres)
+						// check for frequency (greater is better but must be inside limits)
+						if(specs->modedb[i].refresh > modedb->refresh)
+							if ((specs->modedb[i].refresh >= specs->hfmin) && (specs->modedb[i].refresh >= specs->hfmax))
+								modedb = &specs->modedb[i];
+				}
+			}
+			else {
+				if(specs->modedb[i].xres < modedb->xres) // case 3
+					if(specs->modedb[i].yres > modedb->yres && ratio_found == 0){
+						if(__get_ratio(specs->modedb[i].xres, specs->modedb[i].yres) == ratio_from_specs){
+							ratio_found = 1;
+							modedb = &specs->modedb[i];
+						}
+					}
+			} // case 3
+		} // case 2
+	} // for modedb_len
+
+	return modedb;
+}
+
+#endif
+
 /**
  * hdmi_ouputmode_select - select hdmi transmitter output mode: hdmi or dvi?
  * @hdmi: handle of hdmi
@@ -446,7 +530,7 @@ int hdmi_ouputmode_select(struct hdmi *hdmi, int edid_ok)
 	int i, pixclock;
 	
 	if(edid_ok != HDMI_ERROR_SUCESS) {
-		dev_err(hdmi->dev, "warning: EDID error, assume sink as HDMI !!!!");
+		dev_err(hdmi->dev, "warning: EDID error, assume sink as HDMI !!!!\n");
 		hdmi->edid.sink_hdmi = 1;
 	}
 
@@ -456,13 +540,20 @@ int hdmi_ouputmode_select(struct hdmi *hdmi, int edid_ok)
 		hdmi->autoset = 0;
 	}
 	if(head->next == head) {
-		dev_info(hdmi->dev, "warning: no CEA video mode parsed from EDID !!!!");
+		dev_info(hdmi->dev, "warning: no CEA video mode parsed from EDID !!!!\n");
 		// If EDID get error, list all system supported mode.
 		// If output mode is set to DVI and EDID is ok, check
 		// the output timing.
 		
 		if(hdmi->edid.sink_hdmi == 0 && specs && specs->modedb_len) {
 			/* Get max resolution timing */
+#ifdef CONFIG_EDID_FINDBESTMODE_GEN2THOMAS_FIX
+			hdmi_lcdc_debug("________________________________________\n");
+			hdmi_lcdc_debug("[HDMI-LCDC] Find best mode         start\n");
+			modedb = __find_best_matching_mode(specs);
+			hdmi_lcdc_debug("[HDMI-LCDC] Best mode found: %dx%d@%d\n", modedb->xres, modedb->yres, modedb->refresh);
+			hdmi_lcdc_debug("__________________end___________________\n");
+#else
 			modedb = &specs->modedb[0];
 			for (i = 0; i < specs->modedb_len; i++) {
 				if(specs->modedb[i].xres > modedb->xres)
@@ -470,6 +561,7 @@ int hdmi_ouputmode_select(struct hdmi *hdmi, int edid_ok)
 				else if(specs->modedb[i].yres > modedb->yres)
 					modedb = &specs->modedb[i];
 			}
+#endif
 			// For some monitor, the max pixclock read from EDID is smaller
 			// than the clock of max resolution mode supported. We fix it.
 			pixclock = PICOS2KHZ(modedb->pixclock);
@@ -581,7 +673,7 @@ void hdmi_init_modelist(struct hdmi *hdmi)
 	printk( "Show Software Info (HDMI-LCDC)     start\n");
 	printk( "****************************************\n");
 	printk( "Prepared video modes: \n");
-	show_info_modelist_modes(head);
+	__show_info_modelist_modes(head);
 	printk( "*****************end*******************\n");
 	#endif
 }

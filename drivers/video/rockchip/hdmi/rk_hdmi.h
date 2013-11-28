@@ -15,6 +15,16 @@
 #define HDMI_VIC_MASK					(0xFF)
 #define HDMI_TYPE_MASK					(0xFF << 8)
 
+#ifdef CONFIG_EDID_FINDBESTMODE_GEN2THOMAS_FIX //EDID fix by gen2thomas to find best mode also for not sorted lists
+enum hdmi_known_ratio{
+	HDMI_16_BY_09 = 178, // HD video standard 16:9 = 1.78 (widescreen)
+	HDMI_16_BY_10 = 160, // 16:10 = 1,6, f.e. 1280x800, 1680x1050
+	HDMI_04_BY_03 = 133, // standard television format 4:3 = 1.33
+	HDMI_05_BY_04 = 125, // 5:4 = 1.25, f.e. 1280x1024
+};
+
+#endif
+
 // HDMI video information code according CEA-861-E
 enum hdmi_video_infomation_code {
 	HDMI_640x480p_60HZ = 1,
@@ -213,7 +223,7 @@ struct hdmi_edid {
 	unsigned char deepcolor;			//bit3:DC_48bit; bit2:DC_36bit; bit1:DC_30bit; bit0:DC_Y444;
 	unsigned int  cecaddress;			//CEC physical address
 	unsigned int  maxtmdsclock;			//Max supported tmds clock
-	unsigned char fields_present;		//bit7£ºlatency£»bit6£ºi_lantency£»bit5£ºhdmi_video
+	unsigned char fields_present;		//bit7ï¿½ï¿½latencyï¿½ï¿½bit6ï¿½ï¿½i_lantencyï¿½ï¿½bit5ï¿½ï¿½hdmi_video
 	unsigned char video_latency;
 	unsigned char audio_latency;
 	unsigned char interlaced_video_latency;
