@@ -3324,6 +3324,8 @@ void dwc_otg_clear_halt(struct urb *_urb)
 		_qh->data_toggle = 0;
 	}
 }
+EXPORT_SYMBOL_GPL(dwc_otg_clear_halt);
+
 /*
  * Returns the Queue Head for an URB.
  */

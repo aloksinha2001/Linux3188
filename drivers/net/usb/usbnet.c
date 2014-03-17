@@ -96,6 +96,68 @@ MODULE_PARM_DESC (msg_level, "Override default message level");
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef CONFIG_USB_NET_MCS7830_FILIPPOG_FIX
+void free_urb_buffer(struct urb* _urb)
+{
+  struct sk_buff *skb = (struct sk_buff *)_urb->context;
+  char* oldBuffer = *(char**)(&skb->cb[20]);
+  
+  if (oldBuffer)
+    kfree(oldBuffer);
+  *(char**)(&skb->cb[20]) = 0;
+}
+
+void align_urb_buffer_after(struct urb* _urb, struct sk_buff* extskb)
+{
+	char *newBuffer;
+	char* dst;
+	struct sk_buff *skb;
+	int i;
+	char val;
+
+	if (!_urb) return;
+
+	skb = (struct sk_buff *)_urb->context;
+	if (!skb) return;
+
+	newBuffer = kmalloc(_urb->transfer_buffer_length + 8, GFP_ATOMIC);
+	// Random position in control block just to take note of original pointer to free when finished
+	*(char**)(&skb->cb[20]) = newBuffer;
+	while ((unsigned int)newBuffer % 4) newBuffer++;
+
+	dst = newBuffer;
+	for (i = 0; i < _urb->transfer_buffer_length; i++)
+	{
+		val = *(((char*)_urb->transfer_buffer+i));
+		*(dst++) = val;
+	}
+	_urb->transfer_buffer = newBuffer;
+}
+#endif
+
+#ifdef CONFIG_USB_NET_MCS7830_GEN2THOMAS_FIX
+void align_urb_buffer(struct sk_buff* skb)
+{
+	unsigned int rest;
+	unsigned int old_len;
+    char* old_data;
+
+	if (!skb) return;
+
+	rest = (unsigned int)skb->data % 4;
+
+	if (rest > 0){
+		old_data = skb->data;
+		old_len = skb->len;
+		/* align the buffer*/
+		skb_push(skb, rest);
+		/* move the content*/
+		memcpy(skb->data, old_data, old_len);
+	}
+}
+#endif
+
+
 /* handles CDC Ethernet and many other network "bulk data" interfaces */
 int usbnet_get_endpoints(struct usbnet *dev, struct usb_interface *intf)
 {
@@ -1115,8 +1177,20 @@ netdev_tx_t usbnet_start_xmit (struct sk_buff *skb,
 	entry->dev = dev;
 	entry->length = length;
 
+#ifdef CONFIG_USB_NET_MCS7830_GEN2THOMAS_FIX
+	// netdev_dbg(dev->net, "skb align before gen2thomas = %x \n", skb->data);
+	align_urb_buffer(skb);
+	// netdev_dbg(dev->net, "skb align after gen2thomas = %x \n", skb->data);
+#endif
+
 	usb_fill_bulk_urb (urb, dev->udev, dev->out,
 			skb->data, skb->len, tx_complete, skb);
+
+#ifdef CONFIG_USB_NET_MCS7830_FILIPPOG_FIX
+	// netdev_dbg(dev->net, "skb align before fillipo_g = %x \n", urb->transfer_buffer);
+	align_urb_buffer_after(urb, skb);
+	// netdev_dbg(dev->net, "skb align after fillipo_g = %x \n", urb->transfer_buffer);
+#endif
 
 	/* don't assume the hardware handles USB_ZERO_PACKET
 	 * NOTE:  strictly conforming cdc-ether devices should expect
@@ -1185,6 +1259,9 @@ drop:
 not_drop:
 		if (skb)
 			dev_kfree_skb_any (skb);
+#ifdef CONFIG_USB_NET_MCS7830_FILIPPOG_FIX
+		free_urb_buffer(urb);
+#endif
 		usb_free_urb (urb);
 	} else
 		netif_dbg(dev, tx_queued, dev->net,
@@ -1214,6 +1291,9 @@ static void usbnet_bh (unsigned long param)
 			rx_process (dev, skb);
 			continue;
 		case tx_done:
+#ifdef CONFIG_USB_NET_MCS7830_FILIPPOG_FIX
+			free_urb_buffer(entry->urb);
+#endif
 		case rx_cleanup:
 			usb_free_urb (entry->urb);
 			dev_kfree_skb (skb);

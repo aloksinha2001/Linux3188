@@ -4,12 +4,13 @@
 #define hdmi_edid_error(fmt, ...) \
         printk(KERN_ERR pr_fmt(fmt), ##__VA_ARGS__)
 
-#if 0
+#ifdef CONFIG_HDMI_EDID_DEBUG
 #define hdmi_edid_debug(fmt, ...) \
         printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
 #else
-#define hdmi_edid_debug(fmt, ...)	
+#define hdmi_edid_debug(fmt, ...)
 #endif
+
 
 typedef enum HDMI_EDID_ERRORCODE
 {
@@ -73,7 +74,6 @@ static int hdmi_edid_parse_dtd(unsigned char *block, struct fb_videomode *mode)
 	}
 	mode->flag = FB_MODE_IS_DETAILED;
 
-	hdmi_edid_debug("<<<<<<<<Detailed Time>>>>>>>>>\n");
 	hdmi_edid_debug("%d KHz Refresh %d Hz",  PIXEL_CLOCK/1000, mode->refresh);
 	hdmi_edid_debug("%d %d %d %d ", H_ACTIVE, H_ACTIVE + H_SYNC_OFFSET,
 	       H_ACTIVE + H_SYNC_OFFSET + H_SYNC_WIDTH, H_ACTIVE + H_BLANKING);
@@ -84,22 +84,53 @@ static int hdmi_edid_parse_dtd(unsigned char *block, struct fb_videomode *mode)
 	return E_HDMI_EDID_SUCCESS;
 }
 
+#ifdef CONFIG_EDID_BASICTOSVD_GEN2THOMAS_FIX
+//g2t: EDID fix to make all resolutions available
+void base_modes_to_vic(struct hdmi_edid *pedid)
+{
+	struct fb_videomode *modes = pedid->specs->modedb; // list of all available timings (est, std, dtd)
+	int i, vic, count = pedid->specs->modedb_len;
+
+
+	hdmi_edid_debug("[HDMI-EDID] count of base modes is %d\n", count);
+	for(i = 0; i < count; i++)
+	{
+		vic = hdmi_videomode_to_vic(&modes[i]);
+		if (vic){
+			hdmi_edid_debug("[HDMI-EDID] CEA mode %d added from base modes.\n", vic);
+			hdmi_add_vic(vic, &pedid->modelist);
+		}
+		else{
+
+		}
+		i++;
+	}
+}
+#endif
+
 int hdmi_edid_parse_base(unsigned char *buf, int *extend_num, struct hdmi_edid *pedid)
 {
-	int rc, i;
+	int rc;
+
+	#ifdef CONFIG_HDMI_EDID_DEBUG
+	int i;
+	if(buf != NULL){
+		hdmi_edid_debug(">>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<\n");
+		hdmi_edid_debug("Base EDID buffer (len = %d)       start\n", HDMI_EDID_BLOCK_SIZE);
+		hdmi_edid_debug(">>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<\n");
+		for(i = 0; i < HDMI_EDID_BLOCK_SIZE; i++)
+		{
+			printk("%02x ", buf[i]&0xff); // g2t: using printk because listing
+			if((i+1) % 16 == 0)
+				printk("\n");
+		}
+		hdmi_edid_debug(">>>>>>>>>>>>>>>>>>>>end<<<<<<<<<<<<<<<<<\n");
+	}
+	#endif
 	
 	if(buf == NULL || extend_num == NULL)
 		return E_HDMI_EDID_PARAM;
-		
-//	#ifdef DEBUG	
-//	for(i = 0; i < HDMI_EDID_BLOCK_SIZE; i++)
-//	{
-//		hdmi_edid_debug("%02x ", buf[i]&0xff);
-//		if((i+1) % 16 == 0)
-//			hdmi_edid_debug("\n");
-//	}
-//	#endif
-	
+
 	// Check first 8 byte to ensure it is an edid base block.
 	if( buf[0] != 0x00 ||
 	    buf[1] != 0xFF ||
@@ -110,20 +141,19 @@ int hdmi_edid_parse_base(unsigned char *buf, int *extend_num, struct hdmi_edid *
 	    buf[6] != 0xFF ||
 	    buf[7] != 0x00)
     {
-        hdmi_edid_error("[EDID] check header error\n");
+        hdmi_edid_error("[HDMI-EDID] check header error\n");
         return E_HDMI_EDID_HEAD;
     }
     
     *extend_num = buf[0x7e];
-    #ifdef DEBUG
-    hdmi_edid_debug("[EDID] extend block num is %d\n", buf[0x7e]);
-    #endif
-    
+
+    hdmi_edid_debug("[HDMI-EDID] extend block num is %d\n", buf[0x7e]);
+
     // Checksum
     rc = hdmi_edid_checksum(buf);
     if( rc != E_HDMI_EDID_SUCCESS)
     {
-    	hdmi_edid_error("[EDID] base block checksum error\n");
+    	hdmi_edid_error("[HDMI-EDID] base block checksum error\n");
     	return E_HDMI_EDID_CHECKSUM;
     }
 
@@ -132,7 +162,10 @@ int hdmi_edid_parse_base(unsigned char *buf, int *extend_num, struct hdmi_edid *
 		return E_HDMI_EDID_NOMEMORY;
 		
 	fb_edid_to_monspecs(buf, pedid->specs);
-	
+  #ifdef CONFIG_EDID_BASICTOSVD_GEN2THOMAS_FIX
+  //g2t: EDID fix to make all resolutions available
+	base_modes_to_vic(pedid); // g2t: add base modes to modelist.vic
+  #endif
     return E_HDMI_EDID_SUCCESS;
 }
 
@@ -144,7 +177,7 @@ static int hdmi_edid_get_cea_svd(unsigned char *buf, struct hdmi_edid *pedid)
 	count = buf[0] & 0x1F;
 	for(i = 0; i < count; i++)
 	{
-		hdmi_edid_debug("[EDID-CEA] %02x VID %d native %d\n", buf[1 + i], buf[1 + i] & 0x7f, buf[1 + i] >> 7);
+		hdmi_edid_debug("[HDMI-EDID] CEA: %02x VID %d native %d\n", buf[1 + i], buf[1 + i] & 0x7f, buf[1 + i] >> 7);
 		vic = buf[1 + i] & 0x7f;
 		hdmi_add_vic(vic, &pedid->modelist);
 	}
@@ -187,7 +220,7 @@ static int hdmi_edid_parse_cea_sad(unsigned char *buf, struct hdmi_edid *pedid)
 
 static int hdmi_edid_parse_3dinfo(unsigned char *buf, struct list_head *head)
 {
-	int i, j, len = 0, format_3d, vic_mask;
+	int i, j, len = 0, format_3d = 0, vic_mask;
 	unsigned char offset = 2, vic_2d, structure_3d;
 	struct list_head *pos;
 	struct display_modelist *modelist;
@@ -261,7 +294,7 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 	// Check ces extension version
 	if(buf[1] != 3)
 	{
-		hdmi_edid_error("[EDID-CEA] error version.\n");
+		hdmi_edid_error("[HDMI-EDID] CEA: error version.\n");
 		return E_HDMI_EDID_VERSION;
 	}
 	
@@ -271,7 +304,7 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 	pedid->ycbcr444 = (buf[3] >> 5) & 0x01;
 	pedid->ycbcr422 = (buf[3] >> 4) & 0x01;
 	native_dtd_num = buf[3] & 0x0F;
-//	hdmi_edid_debug("[EDID-CEA] ddc_offset %d underscan_support %d baseaudio_support %d yuv_support %d native_dtd_num %d\n", ddc_offset, underscan_support, baseaudio_support, yuv_support, native_dtd_num);
+//	hdmi_edid_debug("[HDMI-EDID] CEA: ddc_offset %d underscan_support %d baseaudio_support %d yuv_support %d native_dtd_num %d\n", ddc_offset, underscan_support, baseaudio_support, yuv_support, native_dtd_num);
 	// Parse data block
 	while(cur_offset < ddc_offset)
 	{
@@ -280,39 +313,39 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 		switch(tag)
 		{
 			case 0x02:	// Video Data Block
-				hdmi_edid_debug("[EDID-CEA] It is a Video Data Block.\n");
+				hdmi_edid_debug("[HDMI-EDID] CEA: It is a Video Data Block.\n");
 				hdmi_edid_get_cea_svd(buf + cur_offset, pedid);
 				break;
 			case 0x01:	// Audio Data Block
-				hdmi_edid_debug("[EDID-CEA] It is a Audio Data Block.\n");
+				hdmi_edid_debug("[HDMI-EDID] CEA: It is a Audio Data Block.\n");
 				hdmi_edid_parse_cea_sad(buf + cur_offset, pedid);
 				break;
 			case 0x04:	// Speaker Allocation Data Block
-				hdmi_edid_debug("[EDID-CEA] It is a Speaker Allocatio Data Block.\n");
+				hdmi_edid_debug("[HDMI-EDID] CEA: It is a Speaker Allocation Data Block.\n");
 				break;
 			case 0x03:	// Vendor Specific Data Block
-				hdmi_edid_debug("[EDID-CEA] It is a Vendor Specific Data Block.\n");
+				hdmi_edid_debug("[HDMI-EDID] CEA: It is a Vendor Specific Data Block.\n");
 
 				IEEEOUI = buf[cur_offset + 3];
 				IEEEOUI <<= 8;
 				IEEEOUI += buf[cur_offset + 2];
 				IEEEOUI <<= 8;
 				IEEEOUI += buf[cur_offset + 1];
-				hdmi_edid_debug("[EDID-CEA] IEEEOUI is 0x%08x.\n", IEEEOUI);
+				hdmi_edid_debug("[HDMI-EDID] CEA: IEEEOUI is 0x%08x.\n", IEEEOUI);
 				if(IEEEOUI == 0x0c03)
 					pedid->sink_hdmi = 1;
 				pedid->cecaddress = buf[cur_offset + 5];
 				pedid->cecaddress |= buf[cur_offset + 4] << 8;
-				hdmi_edid_debug("[EDID-CEA] CEC Physical addres is 0x%08x.\n", pedid->cecaddress);
+				hdmi_edid_debug("[HDMI-EDID] CEA: CEC Physical address is 0x%08x.\n", pedid->cecaddress);
 				if(count > 6)
 					pedid->deepcolor = (buf[cur_offset + 6] >> 3) & 0x0F;					
 				if(count > 7) {
 					pedid->maxtmdsclock = buf[cur_offset + 7] * 5000000;
-					hdmi_edid_debug("[EDID-CEA] maxtmdsclock is %d.\n", pedid->maxtmdsclock);
+					hdmi_edid_debug("[HDMI-EDID] CEA: maxtmdsclock is %d.\n", pedid->maxtmdsclock);
 				}
 				if(count > 8) {
 					pedid->fields_present = buf[cur_offset + 8];
-					hdmi_edid_debug("[EDID-CEA] fields_present is 0x%02x.\n", pedid->fields_present);
+					hdmi_edid_debug("[HDMI-EDID] CEA: fields_present is 0x%02x.\n", pedid->fields_present);
 				}
 				buf_offset = cur_offset + 9;		
 				if(pedid->fields_present & 0x80)
@@ -330,13 +363,13 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 				}
 				break;		
 			case 0x05:	// VESA DTC Data Block
-				hdmi_edid_debug("[EDID-CEA] It is a VESA DTC Data Block.\n");
+				hdmi_edid_debug("[HDMI-EDID] CEA: It is a VESA DTC Data Block.\n");
 				break;
 			case 0x07:	// Use Extended Tag
-				hdmi_edid_debug("[EDID-CEA] It is a Use Extended Tag Data Block.\n");
+				hdmi_edid_debug("[HDMI-EDID] CEA: It is a Use Extended Tag Data Block.\n");
 				break;
 			default:
-				hdmi_edid_error("[EDID-CEA] unkowned data block tag.\n");
+				hdmi_edid_error("[HDMI-EDID] CEA: unknown data block tag.\n");
 				break;
 		}
 		cur_offset += (buf[cur_offset] & 0x1F) + 1;
@@ -346,7 +379,10 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 	// Parse DTD
 	struct fb_videomode *vmode = kmalloc(sizeof(struct fb_videomode), GFP_KERNEL);
 	if(vmode == NULL)
-		return E_HDMI_EDID_SUCCESS; 
+		return E_HDMI_EDID_SUCCESS;
+	hdmi_edid_debug("----------------------------------------\n");
+	hdmi_edid_debug("Detailed Timing (HDMI-EDID)        start\n");
+	hdmi_edid_debug("----------------------------------------\n");
 	while(ddc_offset < HDMI_EDID_BLOCK_SIZE - 2)	//buf[126] = 0 and buf[127] = checksum
 	{
 		if(!buf[ddc_offset] && !buf[ddc_offset + 1])
@@ -356,6 +392,7 @@ static int hdmi_edid_parse_extensions_cea(unsigned char *buf, struct hdmi_edid *
 		hdmi_add_vic(hdmi_videomode_to_vic(vmode), &pedid->modelist);
 		ddc_offset += 18;
 	}
+	hdmi_edid_debug("-----------------end--------------------\n");
 	kfree(vmode);
 }
 #endif
@@ -366,6 +403,22 @@ int hdmi_edid_parse_extensions(unsigned char *buf, struct hdmi_edid *pedid)
 {
 	int rc;
 	
+	#ifdef CONFIG_HDMI_EDID_DEBUG
+    int i;
+    if (buf != NULL){
+		hdmi_edid_debug("<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>\n");
+		hdmi_edid_debug("Extension EDID buffer (len = %d)   start\n", HDMI_EDID_BLOCK_SIZE);
+		hdmi_edid_debug(">>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<\n");
+		for(i = 0; i < HDMI_EDID_BLOCK_SIZE; i++)
+		{
+			printk("%02x ", buf[i]&0xff); // g2t: using printk because listing
+			if((i+1) % 16 == 0)
+				printk("\n");
+		}
+		hdmi_edid_debug("<<<<<<<<<<<<<<<<<end>>>>>>>>>>>>>>>>>>>>\n");
+    }
+	#endif
+
 	if(buf == NULL || pedid == NULL)
 		return E_HDMI_EDID_PARAM;
 		
@@ -373,33 +426,33 @@ int hdmi_edid_parse_extensions(unsigned char *buf, struct hdmi_edid *pedid)
     rc = hdmi_edid_checksum(buf);
     if( rc != E_HDMI_EDID_SUCCESS)
     {
-    	hdmi_edid_error("[EDID] extensions block checksum error\n");
+    	hdmi_edid_error("[HDMI-EDID] extensions block checksum error\n");
     	return E_HDMI_EDID_CHECKSUM;
     }
     
     switch(buf[0])
     {
     	case 0xF0:
-    		hdmi_edid_debug("[EDID-EXTEND] It is a extensions block map.\n");
+    		hdmi_edid_debug("[HDMI-EDID] EXTEND: It is a extensions block map.\n");
     		break;
     	case 0x02:
-    		hdmi_edid_debug("[EDID-EXTEND] It is a  CEA 861 Series Extension.\n");
+    		hdmi_edid_debug("[HDMI-EDID] EXTEND: It is a  CEA 861 Series Extension.\n");
     		hdmi_edid_parse_extensions_cea(buf, pedid);
     		break;
     	case 0x10:
-    		hdmi_edid_debug("[EDID-EXTEND] It is a Video Timing Block Extension.\n");
+    		hdmi_edid_debug("[HDMI-EDID] EXTEND: It is a Video Timing Block Extension.\n");
     		break;
     	case 0x40:
-    		hdmi_edid_debug("[EDID-EXTEND] It is a Display Information Extension.\n");
+    		hdmi_edid_debug("[HDMI-EDID] EXTEND: It is a Display Information Extension.\n");
     		break;
     	case 0x50:
-    		hdmi_edid_debug("[EDID-EXTEND] It is a Localized String Extension.\n");
+    		hdmi_edid_debug("[HDMI-EDID] EXTEND: It is a Localized String Extension.\n");
     		break;
     	case 0x60:
-    		hdmi_edid_debug("[EDID-EXTEND] It is a Digital Packet Video Link Extension.\n");
+    		hdmi_edid_debug("[HDMI-EDID] EXTEND: It is a Digital Packet Video Link Extension.\n");
     		break;
     	default:
-    		hdmi_edid_error("[EDID-EXTEND] Unkowned extension.\n");
+    		hdmi_edid_error("[HDMI-EDID] EXTEND: Unkowned extension.\n");
     		return E_HDMI_EDID_UNKOWNDATA;
     }
     

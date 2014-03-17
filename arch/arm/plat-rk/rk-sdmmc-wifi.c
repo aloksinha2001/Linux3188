@@ -99,8 +99,12 @@ static void *wifi_status_cb_devid;
 
 struct rksdmmc_gpio_wifi_moudle  rk_platform_wifi_gpio = {
     .power_n = {
-            .io             = RK30SDK_WIFI_GPIO_POWER_N, 
-            .enable         = RK30SDK_WIFI_GPIO_POWER_ENABLE_VALUE,
+			#ifdef RK30SDK_WIFI_GPIO_POWER_N
+    		.io             = RK30SDK_WIFI_GPIO_POWER_N,
+			#endif
+			#ifdef RK30SDK_WIFI_GPIO_POWER_ENABLE_VALUE
+    		.enable         = RK30SDK_WIFI_GPIO_POWER_ENABLE_VALUE,
+			#endif
             #ifdef RK30SDK_WIFI_GPIO_POWER_PIN_NAME
             .iomux          = {
                 .name       = RK30SDK_WIFI_GPIO_POWER_PIN_NAME,

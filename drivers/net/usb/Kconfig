@@ -291,6 +291,44 @@ config USB_NET_MCS7830
 	  Choose this option if you're using a 10/100 Ethernet USB2
 	  adapter based on the MosChip 7830 controller. This includes
 	  adapters marketed under the DeLOCK brand.
+	  
+config USB_NET_MCS7830_FILIPPOG_FIX
+    bool "Fillipo_G's fix for some MosChip MCS7830 based Ethernet adapters"
+	help
+	  Fillipo_G's or gen2thomas's fix is necessary for some MosChip MCS7830 based 
+	  Ethernet adapters in case of the driver (mcs7830.ko) is loaded
+	  but no network connection/traffic is possible. Please choose only one of 
+	  this patches! The activation of both patches should be possible but slow down your 
+	  connection unnecessarily.
+	  
+	  Fillipo_G's fix for that bug is slightly slower than gen2thomas's fix but a little 
+	  bit more tested. You can start with gen2thomas's fix activated but in case of some
+	  problems please give feedback and switch temporarely to the Fillipo_G's patch variant.
+
+	  The actual implementation of both patches also affects the other
+	  drivers using the USB_NET framework.
+
+	  For more information see:
+	  https://www.miniand.com/forums/forums/picuntu-linux/topics/no-update-no-download-no-adress-associated-with-hostname?page=2
+
+config USB_NET_MCS7830_GEN2THOMAS_FIX
+    bool "gen2thomas's fix for some MosChip MCS7830 based Ethernet adapters"
+	help
+	  Fillipo_G's or gen2thomas's fix is necessary for some MosChip MCS7830 based 
+	  Ethernet adapters in case of the driver (mcs7830.ko) is loaded
+	  but no network connection/traffic is possible. Please choose only one of 
+	  this patches! The activation of both patches should be possible but slow down your 
+	  connection unnecessarily.
+	  
+	  Fillipo_G's fix for that bug is slightly slower than gen2thomas's fix but a little 
+	  bit more tested. You can start with gen2thomas's fix activated but in case of some
+	  problems please give feedback and switch temporarely to the Fillipo_G's patch variant.
+
+	  The actual implementation of both patches also affects the other
+	  drivers using the USB_NET framework.
+
+	  For more information see:
+	  https://www.miniand.com/forums/forums/picuntu-linux/topics/no-update-no-download-no-adress-associated-with-hostname?page=2
 
 config USB_NET_RNDIS_HOST
 	tristate "Host for RNDIS and ActiveSync devices (EXPERIMENTAL)"

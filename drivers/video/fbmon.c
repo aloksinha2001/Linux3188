@@ -41,9 +41,7 @@
  * EDID parser
  */
 
-#undef DEBUG  /* define this for verbose EDID parsing output */
-
-#ifdef DEBUG
+#ifdef CONFIG_BASIC_EDID_DEBUG
 #define DPRINTK(fmt, args...) printk(fmt,## args)
 #else
 #define DPRINTK(fmt, args...)
@@ -579,6 +577,7 @@ static void get_detailed_timing(unsigned char *block,
 	}
 	mode->flag = FB_MODE_IS_DETAILED;
 
+	DPRINTK("    %dx%d@%d:\n", H_ACTIVE, V_ACTIVE, PIXEL_CLOCK/((H_ACTIVE + H_BLANKING) * (V_ACTIVE + V_BLANKING)));
 	DPRINTK("      %d MHz ",  PIXEL_CLOCK/1000000);
 	DPRINTK("%d %d %d %d ", H_ACTIVE, H_ACTIVE + H_SYNC_OFFSET,
 	       H_ACTIVE + H_SYNC_OFFSET + H_SYNC_WIDTH, H_ACTIVE + H_BLANKING);
@@ -938,7 +937,7 @@ void fb_edid_to_monspecs(unsigned char *edid, struct fb_monspecs *specs)
 	specs->revision = edid[EDID_STRUCT_REVISION];
 
 	DPRINTK("========================================\n");
-	DPRINTK("Display Information (EDID)\n");
+	DPRINTK("Display Information (EDID)         start\n");
 	DPRINTK("========================================\n");
 	DPRINTK("   EDID Version %d.%d\n", (int) specs->version,
 	       (int) specs->revision);
@@ -979,7 +978,7 @@ void fb_edid_to_monspecs(unsigned char *edid, struct fb_monspecs *specs)
 	if (!found)
 		specs->misc &= ~FB_MISC_1ST_DETAIL;
 
-	DPRINTK("========================================\n");
+	DPRINTK("================end==================\n");
 }
 
 /**
