@@ -394,7 +394,7 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 
             		break;
     }
-    return 0;
+    return -ENOIOCTLCMD;
 }
 
 static int rk_fb_blank(int blank_mode, struct fb_info *info)
