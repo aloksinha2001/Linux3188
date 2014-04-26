@@ -297,6 +297,7 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	int ovl;	//overlay:0 win1 on the top of win0;1,win0 on the top of win1
 	int num_buf; //buffer_number
 	void __user *argp = (void __user *)arg;
+	int status;
 	
 #ifdef CONFIG_MALI
         int secure_id_buf_num = 0; //IAM
@@ -380,14 +381,20 @@ static int rk_fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 				return -EFAULT;
 			dev_drv->vsync_info.active = enable;
 			break;
-        	default:
-			dev_drv->ioctl(dev_drv,cmd,arg,layer_id);
+		default:
+			status = dev_drv->ioctl(dev_drv,cmd,arg,layer_id);
+			/* Forwarding this ioctl to multiple devices if DUAL_DISP is enabled is dubious at best.
+			   Here we're taking the conservative approach and return early if the first one fails. */
+			if (status != 0) {
+				return status;
+			}
+
 			//$_rbox_$_modify_$ zhengyang modified for box display system
 			#if defined(CONFIG_DUAL_LCDC_DUAL_DISP_IN_KERNEL)
 			if(inf->num_lcdc >= 2) {
 				info2 = inf->fb[inf->num_fb>>1];
 				dev_drv1  = (struct rk_lcdc_device_driver * )info2->par;
-				dev_drv1->ioctl(dev_drv1,cmd,arg,layer_id);
+				return dev_drv1->ioctl(dev_drv1,cmd,arg,layer_id);
 			}
 			#endif
 			//$_rbox_$_modify_$ end
