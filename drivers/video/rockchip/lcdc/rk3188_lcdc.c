@@ -221,6 +221,12 @@ static int rk3188_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,b
 	struct rk3188_lcdc_device *lcdc_dev = 
 		container_of(dev_drv,struct rk3188_lcdc_device,driver);
 
+	if (unlikely(layer_id < 0 || layer_id > 1))
+	{
+		printk("rk3188_lcdc: invalid layer number:%d\n",layer_id);
+		return -1;
+	}
+
 	if((open) && (!lcdc_dev->atv_layer_cnt)) //enable clk,when first layer open
 	{
 		rk3188_lcdc_clk_enable(lcdc_dev);
@@ -246,22 +252,24 @@ static int rk3188_lcdc_open(struct rk_lcdc_device_driver *dev_drv,int layer_id,b
 #endif
 	}
 
-	if(layer_id == 0)
+	/* No point attempting to set an lcdc to the same state it already is in.
+	   Important: without this check atv_layer_cnt can both overflow and underflow,
+	   causing the lcdc (and the screen) to shut down when it shouldn't. */
+	if (lcdc_dev->driver.layer_par[layer_id]->state != open)
 	{
-		win0_open(lcdc_dev,open);	
-	}
-	else if(layer_id == 1)
-	{
-		win1_open(lcdc_dev,open);
-	}
-	else 
-	{
-		printk("invalid win number:%d\n",layer_id);
-	}
+		if(layer_id == 0)
+		{
+			win0_open(lcdc_dev,open);
+		}
+		else if(layer_id == 1)
+		{
+			win1_open(lcdc_dev,open);
+		}
 
-	if((!open) && (!lcdc_dev->atv_layer_cnt))  //when all layer closed,disable clk
-	{
-		rk3188_lcdc_clk_disable(lcdc_dev);
+		if((!open) && (!lcdc_dev->atv_layer_cnt))  //when all layer closed,disable clk
+		{
+			rk3188_lcdc_clk_disable(lcdc_dev);
+		}
 	}
 
 	printk(KERN_INFO "lcdc%d win%d %s,atv layer:%d\n",
